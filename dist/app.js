@@ -24,6 +24,7 @@ let searchTerm = '';
 let currentProduct = null;
 let adminTab = 'products';
 let adminEditing = null;
+let roomPhotoUrl = null;
 
 function saveData() { localStorage.setItem(STORAGE_PRODUCTS, JSON.stringify(products)); localStorage.setItem(STORAGE_CATEGORIES, JSON.stringify(categories)); }
 function saveCart() { localStorage.setItem(STORAGE_CART, JSON.stringify(cart)); renderCart(); }
@@ -52,7 +53,7 @@ function renderProducts() {
   const list = filteredProducts();
   $('#resultsCount').textContent = `${list.length} ${list.length===1?'peça encontrada':'peças encontradas'}` + (searchTerm ? ` para “${searchTerm}”` : '');
   $('#noResults').hidden = list.length>0;
-  $('#productGrid').innerHTML = list.map(product => `<article class="product-card"><div class="product-image" style="--pos:${spritePositions[product.sprite]||spritePositions[0]}" data-open-product="${escapeHtml(product.id)}" role="button" tabindex="0" aria-label="Ver ${escapeHtml(product.name)}"><span class="product-badge">${escapeHtml(product.badge||'Feito à mão')}</span><button class="quick-add" data-add="${escapeHtml(product.id)}" aria-label="Adicionar ${escapeHtml(product.name)} ao carrinho">+</button></div><div class="product-meta"><div><div class="product-category">${escapeHtml(product.category)}</div><div class="product-name">${escapeHtml(product.name)}</div><div class="product-price">${currency(product.price)} <small>valor ilustrativo</small></div></div></div><div class="product-actions"><button data-open-product="${escapeHtml(product.id)}">Ver detalhes</button>${product.model?`<button data-open-3d="${escapeHtml(product.id)}">◈ Ver em 3D/AR</button>`:''}</div></article>`).join('');
+  $('#productGrid').innerHTML = list.map(product => `<article class="product-card"><div class="product-image" style="--pos:${spritePositions[product.sprite]||spritePositions[0]}" data-open-product="${escapeHtml(product.id)}" role="button" tabindex="0" aria-label="Ver ${escapeHtml(product.name)}"><span class="product-badge">${escapeHtml(product.badge||'Feito à mão')}</span><button class="quick-add" data-add="${escapeHtml(product.id)}" aria-label="Adicionar ${escapeHtml(product.name)} ao carrinho">+</button></div><div class="product-meta"><div><div class="product-category">${escapeHtml(product.category)}</div><div class="product-name">${escapeHtml(product.name)}</div><div class="product-price">${currency(product.price)} <small>valor ilustrativo</small></div></div></div><div class="product-actions"><button data-open-product="${escapeHtml(product.id)}">Ver detalhes</button>${product.model?`<button data-open-3d="${escapeHtml(product.id)}">◈ Prévia na parede</button>`:''}</div></article>`).join('');
   const count = ($('#maxPrice').value!=='300'?1:0)+($('#stockOnly').checked?1:0);
   $('#activeFilterCount').textContent = count?`(${count})`:'';
   $('#priceLabel').textContent = currency(Number($('#maxPrice').value));
@@ -69,8 +70,45 @@ function renderCart() {
 function openProduct(id,showModel=false) {
   const product=products.find(item=>item.id===id); if(!product) return;
   currentProduct=id;
-  $('#productDetail').innerHTML=`<div class="product-detail-grid"><div class="detail-image" style="--pos:${spritePositions[product.sprite]||spritePositions[0]}"></div><div class="detail-copy"><div class="product-category">${escapeHtml(product.category)} · PEÇA ARTESANAL</div><h2>${escapeHtml(product.name)}</h2><div class="detail-price">${currency(product.price)} <small style="font-size:10px;color:#8a7d6e;font-weight:400">valor ilustrativo</small></div><p>${escapeHtml(product.description)}</p><ul><li><strong>Dimensões:</strong> ${escapeHtml(product.size||'A definir')}</li><li><strong>Materiais:</strong> ${escapeHtml(product.material||'A definir')}</li><li><strong>Produção:</strong> feita à mão</li></ul><div class="detail-actions"><div class="qty-control"><button id="detailDec" aria-label="Diminuir quantidade">−</button><span id="detailQty">1</span><button id="detailInc" aria-label="Aumentar quantidade">+</button></div><button class="button button-dark" id="detailAdd">Adicionar ao carrinho ↗</button></div>${product.model?`<div class="model-viewer-wrap"><button class="model-trigger" id="modelTrigger">◈ Visualizar modelo 3D e realidade aumentada</button><div class="model-box ${showModel?'open':''}" id="modelBox"><model-viewer src="assets/mandala-conceitual.glb" alt="Modelo 3D ilustrativo de uma mandala decorativa" camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look" ar-placement="wall" ar-scale="fixed" shadow-intensity="1" exposure="1.1"><button slot="ar-button" class="button button-terracotta" style="position:absolute;bottom:12px;left:12px">Ver na minha parede ↗</button></model-viewer><p>Modelo conceitual em escala aproximada. A peça real pode ter aparência diferente. AR disponível em aparelhos compatíveis.</p></div></div>`:''}</div></div>`;
+  $('#productDetail').innerHTML=`<div class="product-detail-grid"><div class="detail-image" style="--pos:${spritePositions[product.sprite]||spritePositions[0]}"></div><div class="detail-copy"><div class="product-category">${escapeHtml(product.category)} · PEÇA ARTESANAL</div><h2>${escapeHtml(product.name)}</h2><div class="detail-price">${currency(product.price)} <small style="font-size:10px;color:#8a7d6e;font-weight:400">valor ilustrativo</small></div><p>${escapeHtml(product.description)}</p><ul><li><strong>Dimensões:</strong> ${escapeHtml(product.size||'A definir')}</li><li><strong>Materiais:</strong> ${escapeHtml(product.material||'A definir')}</li><li><strong>Produção:</strong> feita à mão</li></ul><div class="detail-actions"><div class="qty-control"><button id="detailDec" aria-label="Diminuir quantidade">−</button><span id="detailQty">1</span><button id="detailInc" aria-label="Aumentar quantidade">+</button></div><button class="button button-dark" id="detailAdd">Adicionar ao carrinho ↗</button></div>${product.model?`<div class="model-viewer-wrap"><button class="model-trigger" id="modelTrigger">◈ Prévia na parede</button><div class="model-box ${showModel?'open':''}" id="modelBox"><p class="preview-intro">Prévia fotográfica ilustrativa, com largura aproximada de 45 cm. Para a peça real, será necessário fotografar ou escanear o produto.</p><model-viewer id="arViewer" src="assets/mandala-preview.glb" poster="assets/mandala-recorte.png" alt="Prévia fotográfica de uma mandala na parede" ar ar-modes="scene-viewer quick-look webxr" ar-placement="wall" ar-scale="auto" camera-orbit="0deg 90deg auto" interaction-prompt="none" shadow-intensity="0" exposure="1"></model-viewer><button type="button" class="button button-terracotta full-button" id="arStart" disabled>Carregando prévia...</button><p class="ar-support" id="arSupport">Aguarde o carregamento para verificar a compatibilidade do aparelho.</p><details class="room-preview"><summary>Ver em uma foto do meu ambiente</summary><p>Envie uma foto da parede e arraste a mandala para testar a composição. A foto fica apenas no seu aparelho.</p><label class="room-upload">Escolher foto da parede<input id="roomPhotoInput" type="file" accept="image/*"></label><div class="room-canvas" id="roomCanvas" hidden><img id="roomImage" alt="Foto do seu ambiente"><img id="roomProduct" src="assets/mandala-recorte.png" alt="Mandala sobreposta à foto"></div><label class="room-scale" id="roomScaleLabel" hidden>Tamanho na foto<input id="roomScale" type="range" min="15" max="65" value="32"></label></details></div></div>`:''}</div></div>`;
+  if (product.model) setupPreview();
   closeCart(); openDialog('#productDialog');
+}
+function setupPreview() {
+  const viewer = $('#arViewer');
+  const arButton = $('#arStart');
+  const support = $('#arSupport');
+  const updateSupport = () => {
+    const available = Boolean(viewer.canActivateAR);
+    arButton.disabled = !available;
+    arButton.textContent = available ? 'Abrir câmera e posicionar na parede ↗' : 'AR indisponível neste aparelho';
+    support.textContent = available
+      ? 'Aponte a câmera para uma parede bem iluminada e mova o celular devagar até detectar a superfície.'
+      : 'Use a opção com foto do ambiente abaixo. A AR depende do navegador e do aparelho.';
+  };
+  viewer.addEventListener('load', updateSupport);
+  viewer.addEventListener('error', () => {
+    arButton.disabled = true;
+    arButton.textContent = 'Não foi possível carregar a prévia AR';
+    support.textContent = 'A opção com foto do ambiente continua disponível abaixo.';
+  });
+  customElements.whenDefined('model-viewer').then(() => setTimeout(updateSupport, 100));
+  const roomProduct = $('#roomProduct');
+  const roomCanvas = $('#roomCanvas');
+  let dragging = false;
+  roomProduct.addEventListener('pointerdown', event => {
+    dragging = true;
+    roomProduct.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+  roomProduct.addEventListener('pointermove', event => {
+    if (!dragging) return;
+    const rect = roomCanvas.getBoundingClientRect();
+    roomProduct.style.left = `${Math.max(0, Math.min(100, (event.clientX - rect.left) / rect.width * 100))}%`;
+    roomProduct.style.top = `${Math.max(0, Math.min(100, (event.clientY - rect.top) / rect.height * 100))}%`;
+  });
+  roomProduct.addEventListener('pointerup', () => { dragging = false; });
+  roomProduct.addEventListener('pointercancel', () => { dragging = false; });
 }
 function updateSearch() { searchTerm=$('#searchInput').value.trim(); $('#catalogSearch').value=searchTerm; activeCategory='Todos'; renderProducts(); closeDialogs(); document.querySelector('#colecao').scrollIntoView({behavior:'smooth'}); }
 function makeOrderMessage(form) {
@@ -108,6 +146,11 @@ document.addEventListener('click',event=>{
   if(target.id==='detailDec'){let q=$('#detailQty');q.textContent=Math.max(1,Number(q.textContent)-1);return;}
   if(target.id==='detailAdd'){const qty=Number($('#detailQty').textContent);closeDialogs();addToCart(currentProduct,qty);return;}
   if(target.id==='modelTrigger'){$('#modelBox').classList.toggle('open');return;}
+  if(target.id==='arStart'){
+    const viewer=$('#arViewer');
+    if(viewer?.canActivateAR) Promise.resolve(viewer.activateAR()).catch(()=>showInfo('AR indisponível','Não foi possível abrir a câmera neste aparelho. Tente a opção com foto do ambiente.'));
+    return;
+  }
   if(target.id==='adminNew'){renderAdminForm();return;}
   if(target.dataset.adminEdit){renderAdminForm(target.dataset.adminEdit);return;}
   if(target.dataset.adminDelete){const product=products.find(item=>item.id===target.dataset.adminDelete);if(product&&confirm(`Excluir ${product.name} desta demonstração?`)){products=products.filter(item=>item.id!==product.id);delete cart[product.id];saveData();saveCart();renderProducts();renderAdmin();}return;}
@@ -117,6 +160,23 @@ document.addEventListener('click',event=>{
   if(target.id==='cancelAdminForm'){$('#adminFormHost').innerHTML='';return;}
 });
 document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-open-product][role="button"]')){event.preventDefault();openProduct(event.target.dataset.openProduct);}});
+document.addEventListener('change', event => {
+  if (event.target.id !== 'roomPhotoInput') return;
+  const file = event.target.files?.[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  if (roomPhotoUrl) URL.revokeObjectURL(roomPhotoUrl);
+  roomPhotoUrl = URL.createObjectURL(file);
+  $('#roomImage').src = roomPhotoUrl;
+  $('#roomCanvas').hidden = false;
+  $('#roomScaleLabel').hidden = false;
+});
+document.addEventListener('input', event => {
+  if (event.target.id === 'roomScale') $('#roomProduct').style.width = `${event.target.value}%`;
+});
+$('#productDialog').addEventListener('close', () => {
+  if (roomPhotoUrl) URL.revokeObjectURL(roomPhotoUrl);
+  roomPhotoUrl = null;
+});
 document.addEventListener('submit',event=>{
   if(event.target.id==='customForm'){event.preventDefault();const message=makeOrderMessage(event.target);$('#customMessage').value=message;$('#customStatus').textContent=`A mensagem será aberta para ${STORE_WHATSAPP}. Revise os dados antes de enviar.`;$('#openWhatsApp').href=`https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent(message)}`;$('#customResult').hidden=false;$('#customResult').scrollIntoView({behavior:'smooth',block:'nearest'});return;}
   if(event.target.id==='productForm'){event.preventDefault();const data=Object.fromEntries(new FormData(event.target).entries());const product={id:adminEditing||uniqueId(data.name),name:data.name.trim(),category:data.category,price:Number(data.price),sprite:Number(data.sprite),badge:data.badge.trim(),stock:data.stock==='yes',description:data.description.trim(),size:data.size.trim(),material:data.material.trim(),model:adminEditing?Boolean(products.find(item=>item.id===adminEditing)?.model):false};if(adminEditing)products=products.map(item=>item.id===adminEditing?product:item);else products.push(product);saveData();renderProducts();renderCart();renderAdmin();return;}
