@@ -25,6 +25,8 @@ let currentProduct = null;
 let adminTab = 'products';
 let adminEditing = null;
 let roomPhotoUrl = null;
+let arPendingReturn = false;
+let arReturnGuardUntil = 0;
 
 function saveData() { localStorage.setItem(STORAGE_PRODUCTS, JSON.stringify(products)); localStorage.setItem(STORAGE_CATEGORIES, JSON.stringify(categories)); }
 function saveCart() { localStorage.setItem(STORAGE_CART, JSON.stringify(cart)); renderCart(); }
@@ -92,6 +94,12 @@ function setupPreview() {
     arButton.textContent = 'Não foi possível carregar a prévia AR';
     support.textContent = 'A opção com foto do ambiente continua disponível abaixo.';
   });
+  viewer.addEventListener('ar-status', event => {
+    if (arPendingReturn && ['not-presenting', 'failed'].includes(event.detail?.status)) {
+      arReturnGuardUntil = Date.now() + 2200;
+      arPendingReturn = false;
+    }
+  });
   customElements.whenDefined('model-viewer').then(() => setTimeout(updateSupport, 100));
   const roomProduct = $('#roomProduct');
   const roomCanvas = $('#roomCanvas');
@@ -133,6 +141,11 @@ function uniqueId(name){return `${name.toLocaleLowerCase('pt-BR').normalize('NFD
 
 document.addEventListener('click',event=>{
   const target=event.target.closest('button,[data-open-product]'); if(!target)return;
+  if(Date.now()<arReturnGuardUntil && (target.dataset.add || target.id==='detailAdd')){
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
   if(target.matches('[data-close]')){closeDialogs();closeCart();return;}
   if(target.dataset.add){event.stopPropagation();addToCart(target.dataset.add);return;}
   if(target.dataset.open3d){openProduct(target.dataset.open3d,true);return;}
@@ -148,7 +161,14 @@ document.addEventListener('click',event=>{
   if(target.id==='modelTrigger'){$('#modelBox').classList.toggle('open');return;}
   if(target.id==='arStart'){
     const viewer=$('#arViewer');
-    if(viewer?.canActivateAR) Promise.resolve(viewer.activateAR()).catch(()=>showInfo('AR indisponível','Não foi possível abrir a câmera neste aparelho. Tente a opção com foto do ambiente.'));
+    if(viewer?.canActivateAR){
+      arPendingReturn=true;
+      arReturnGuardUntil=Date.now()+2200;
+      Promise.resolve(viewer.activateAR()).catch(()=>{
+        arPendingReturn=false;
+        showInfo('AR indisponível','Não foi possível abrir a câmera neste aparelho. Tente a opção com foto do ambiente.');
+      });
+    }
     return;
   }
   if(target.id==='adminNew'){renderAdminForm();return;}
@@ -177,6 +197,12 @@ $('#productDialog').addEventListener('close', () => {
   if (roomPhotoUrl) URL.revokeObjectURL(roomPhotoUrl);
   roomPhotoUrl = null;
 });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden || !arPendingReturn) return;
+  arPendingReturn=false;
+  arReturnGuardUntil=Date.now()+2200;
+  if (!$('#productDialog').open && currentProduct) openDialog('#productDialog');
+});
 document.addEventListener('submit',event=>{
   if(event.target.id==='customForm'){event.preventDefault();const message=makeOrderMessage(event.target);$('#customMessage').value=message;$('#customStatus').textContent=`A mensagem será aberta para ${STORE_WHATSAPP}. Revise os dados antes de enviar.`;$('#openWhatsApp').href=`https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent(message)}`;$('#customResult').hidden=false;$('#customResult').scrollIntoView({behavior:'smooth',block:'nearest'});return;}
   if(event.target.id==='productForm'){event.preventDefault();const data=Object.fromEntries(new FormData(event.target).entries());const product={id:adminEditing||uniqueId(data.name),name:data.name.trim(),category:data.category,price:Number(data.price),sprite:Number(data.sprite),badge:data.badge.trim(),stock:data.stock==='yes',description:data.description.trim(),size:data.size.trim(),material:data.material.trim(),model:adminEditing?Boolean(products.find(item=>item.id===adminEditing)?.model):false};if(adminEditing)products=products.map(item=>item.id===adminEditing?product:item);else products.push(product);saveData();renderProducts();renderCart();renderAdmin();return;}
@@ -184,7 +210,10 @@ document.addEventListener('submit',event=>{
 });
 document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close()}));
 $('#overlay').addEventListener('click',closeCart);
-$('#cartButton').addEventListener('click',openCart);
+$('#cartButton').addEventListener('click',event=>{
+  if(Date.now()<arReturnGuardUntil){event.preventDefault();return;}
+  openCart();
+});
 $('#searchTrigger').addEventListener('click',()=>{openDialog('#searchDialog');setTimeout(()=>$('#searchInput').focus(),30)});
 $('#searchInput').addEventListener('keydown',event=>{if(event.key==='Enter')updateSearch()});
 $('#searchSubmit').addEventListener('click',updateSearch);
