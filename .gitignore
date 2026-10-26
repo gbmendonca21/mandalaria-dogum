@@ -5,3 +5,9 @@
 node_modules/
 outputs/
 .neon
+.sites-runtime/
+.vinext/
+.wrangler/
+.next/
+dist/
+*.tsbuildinfo

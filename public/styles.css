@@ -45,3 +45,15 @@
 @media(max-width:1050px){.brand-logo .brand-art{width:47px;height:44px}.brand-logo .brand-type{width:155px;height:31px}.brand-logo{gap:8px}}
 @media(max-width:760px){.site-header{gap:9px}.brand-logo .brand-art{width:42px;height:39px}.brand-logo .brand-type{width:137px;height:27px}.brand-logo{gap:6px}.story-logo-card{width:min(270px,82vw);margin:0 auto 38px}}
 @media(max-width:380px){.brand-logo .brand-art{width:32px;height:30px}.brand-logo .brand-type{width:108px;height:22px}.brand-logo{gap:5px}.header-actions{gap:0}}
+
+/* Catálogo conectado ao Neon: fotos reais ou espaço neutro para peças sem imagem. */
+.real-product-image,.real-detail-image,.real-cart-thumb{background:#efe7d8}
+.product-photo,.detail-photo,.cart-photo{display:block;width:100%;height:100%;object-fit:cover}
+.product-photo.product-placeholder,.detail-photo.product-placeholder,.cart-photo.product-placeholder{object-fit:contain;padding:20%;opacity:.46}
+.real-detail-image{overflow:hidden}
+.real-cart-thumb{overflow:hidden}
+.admin-form textarea{background:#fff;border:1px solid #d8cdbc;border-radius:0;padding:12px 13px;width:100%;outline-color:var(--saffron);resize:vertical}
+.admin-form .admin-wide{margin-top:12px}
+.admin-row>div:last-child{white-space:nowrap}
+.account-link{margin-top:12px}
+@media(max-width:500px){.product-photo.product-placeholder{padding:17%}.admin-row{align-items:flex-start}.admin-row>div:last-child{display:flex;flex-direction:column;gap:7px}.admin-row button{margin-left:0}}
