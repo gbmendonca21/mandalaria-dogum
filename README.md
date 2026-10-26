@@ -3,6 +3,7 @@
 Prévia pública da vitrine da loja. O catálogo, as imagens e os preços são **conceituais**. O número em `dist/config.js` é o WhatsApp de testes do desenvolvedor.
 
 O logo enviado pela loja está preservado em `dist/assets/logo-mandalaria-original.jpg`. O site usa recortes transparentes derivados dele (`logo-symbol-transparent.png` e `logo-wordmark-transparent.png`), com a escrita corrigida para **D’OGUM** e um pequeno espaço entre o símbolo e o nome. As versões originais permanecem guardadas para referência.
+O bege dentro da mandala é aplicado em `dist/styles.css`; fora do círculo e atrás da escrita, o fundo permanece transparente.
 
 ## O que já funciona
 

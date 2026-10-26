@@ -35,6 +35,7 @@
 .brand-logo .brand-type{width:182px;height:36px;flex:none}
 .story-logo-card{width:min(100%,340px);display:flex;flex-direction:column;align-items:center;gap:15px}
 .story-logo-art{width:100%;height:auto;aspect-ratio:1}
+.brand-art,.story-logo-art{background:radial-gradient(circle closest-side at center,#f5e9d2 0 89%,transparent 90%);background-repeat:no-repeat}
 .story-logo-type{width:94%;height:auto;aspect-ratio:2040/430}
 .story-section{background:#ede0c2;color:var(--ink)}
 .story-section .eyebrow{color:#966522}
