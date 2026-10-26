@@ -30,12 +30,17 @@
 
 /* Original brand artwork, displayed in separate crops so its lettering keeps a gentle gap. */
 .brand-logo{gap:11px;flex:none;align-items:center}
-.brand-logo svg,.story-logo-card svg{display:block;stroke:none;fill:initial;overflow:hidden}
+.brand-logo svg,.story-logo-card svg,.brand-logo img,.story-logo-card img{display:block;stroke:none;fill:initial;overflow:hidden;object-fit:contain}
 .brand-logo .brand-art{width:55px;height:52px;flex:none}
 .brand-logo .brand-type{width:182px;height:36px;flex:none}
-.story-logo-card{width:min(100%,340px);background:#faf5e8;padding:19px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 15px 40px #10190f26}
-.story-logo-art{width:100%;height:auto;aspect-ratio:804/750}
-.story-logo-type{width:92%;height:auto;aspect-ratio:765/162}
+.story-logo-card{width:min(100%,340px);display:flex;flex-direction:column;align-items:center;gap:15px}
+.story-logo-art{width:100%;height:auto;aspect-ratio:1}
+.story-logo-type{width:94%;height:auto;aspect-ratio:2040/430}
+.story-section{background:#ede0c2;color:var(--ink)}
+.story-section .eyebrow{color:#966522}
+.story-section h2 em{color:var(--terracotta)}
+.story-section p{color:#625849}
+.story-section a{color:#87482f;border-color:#a87547}
 @media(max-width:1050px){.brand-logo .brand-art{width:47px;height:44px}.brand-logo .brand-type{width:155px;height:31px}.brand-logo{gap:8px}}
 @media(max-width:760px){.site-header{gap:9px}.brand-logo .brand-art{width:42px;height:39px}.brand-logo .brand-type{width:137px;height:27px}.brand-logo{gap:6px}.story-logo-card{width:min(270px,82vw);margin:0 auto 38px}}
 @media(max-width:380px){.brand-logo .brand-art{width:32px;height:30px}.brand-logo .brand-type{width:108px;height:22px}.brand-logo{gap:5px}.header-actions{gap:0}}
