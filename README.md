@@ -2,7 +2,7 @@
 
 Prévia pública da vitrine da loja. O catálogo, as imagens e os preços são **conceituais**. O número em `dist/config.js` é o WhatsApp de testes do desenvolvedor.
 
-O logo enviado pela loja está preservado em `dist/assets/logo-mandalaria-original.jpg`. O cabeçalho, o rodapé e a seção de história exibem recortes desse mesmo arquivo com um pequeno espaço visual entre a mandala e a escrita; o desenho e as letras originais não foram alterados.
+O logo enviado pela loja está preservado em `dist/assets/logo-mandalaria-original.jpg`. O cabeçalho, o rodapé e a seção de história usam a mandala desse arquivo e a escrita corrigida para **D’OGUM** em `dist/assets/logo-wordmark-ogum-v2.png`, com um pequeno espaço visual entre as duas partes. A mandala original não foi alterada.
 
 ## O que já funciona
 
