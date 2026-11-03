@@ -65,7 +65,10 @@ async function loadMe() {
   $('#accountButton').setAttribute('aria-label', me.authenticated ? `Minha conta: ${me.email}` : 'Entrar na minha conta');
 }
 function renderCategories() {
-  $('#categoryTabs').innerHTML = ['Todos', ...categories].map(category => `<button data-category="${escapeHtml(category)}" class="${category === activeCategory ? 'active' : ''}" aria-pressed="${category === activeCategory}">${escapeHtml(category)}</button>`).join('');
+  $('#categoryTabs').innerHTML = ['Todos', ...categories].map(category => {
+    const label = category === 'Velas artesanais aromáticas' ? 'Velas aromáticas' : category;
+    return `<button data-category="${escapeHtml(category)}" class="${category === activeCategory ? 'active' : ''}" aria-pressed="${category === activeCategory}">${escapeHtml(label)}</button>`;
+  }).join('');
 }
 function filteredProducts() {
   const maxPrice = Number($('#maxPrice').value);
