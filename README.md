@@ -2,6 +2,8 @@
 
 Loja em desenvolvimento, publicada em <https://mandalaria-dogum.azurenote4099.chatgpt.site>. O projeto usa Sites com rotas de servidor e PostgreSQL no Neon. O logo está em `public/assets/` e a vitrine original foi preservada em `legacy-index.html`, servida pela rota `app/route.ts`.
 
+A prévia em <https://gbmendonca21.github.io/mandalaria-dogum/> é gerada por `npm run build:pages` e publicada pelo workflow do GitHub. Ela contém um retrato do catálogo público no momento do build e somente os recursos que funcionam sem servidor. O login, o painel administrativo e o banco funcionam na versão Sites; mudanças no catálogo exigem uma nova execução do workflow para aparecer no Pages.
+
 ## O que funciona
 
 - Catálogo público vindo do Neon (`GET /api/catalog`), com busca, categorias, filtros, detalhes, carrinho local e exibição opcional de modelos GLB/USDZ e AR.

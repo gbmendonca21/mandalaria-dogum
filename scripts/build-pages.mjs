@@ -29,7 +29,14 @@ if (!html.includes('<meta name="robots" content="noindex,nofollow">')) {
 }
 await writeFile(
   path.join(outputDirectory, "index.html"),
-  html.replace('<meta name="robots" content="noindex,nofollow">', '<meta name="robots" content="index,follow">'),
+  html
+    .replace('<meta name="robots" content="noindex,nofollow">', '<meta name="robots" content="index,follow">')
+    .replace(
+      "<body>",
+      '<body>\n<div class="pages-preview-note" role="note">Prévia visual no GitHub Pages. O catálogo atual tem ' +
+        `${catalog.products.length} ${catalog.products.length === 1 ? "produto publicado" : "produtos publicados"}. ` +
+        '<a href="https://mandalaria-dogum.azurenote4099.chatgpt.site/">Abrir a loja completa com login e painel ↗</a></div>',
+    ),
 );
 
 const config = await readFile(path.join(publicDirectory, "config.js"), "utf8");
@@ -50,7 +57,7 @@ await writeFile(appPath, app.replace(apiFunction, staticApiFunction));
 const stylesPath = path.join(outputDirectory, "styles.css");
 await writeFile(
   stylesPath,
-  `${await readFile(stylesPath, "utf8")}\n.github-pages #accountButton,.github-pages #adminDemo{display:none!important}\n`,
+  `${await readFile(stylesPath, "utf8")}\n.github-pages #accountButton,.github-pages #adminDemo{display:none!important}\n.pages-preview-note{background:#402f23;color:#fffdf8;text-align:center;padding:10px 18px;font-size:12px;line-height:1.5}.pages-preview-note a{color:#f3d487;text-decoration:underline;text-underline-offset:3px;margin-left:4px}@media(max-width:600px){.pages-preview-note a{display:block;margin-left:0}}\n`,
 );
 await writeFile(path.join(outputDirectory, ".nojekyll"), "");
 
