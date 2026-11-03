@@ -10,4 +10,6 @@ outputs/
 .wrangler/
 .next/
 dist/
+dist-pages/
+/public/catalog.json
 *.tsbuildinfo
