@@ -12,4 +12,5 @@ outputs/
 dist/
 dist-pages/
 /public/catalog.json
+/public/auth-client.js
 *.tsbuildinfo

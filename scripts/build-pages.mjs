@@ -21,6 +21,7 @@ await rm(outputDirectory, { recursive: true, force: true });
 await mkdir(outputDirectory, { recursive: true });
 await cp(path.join(publicDirectory, "assets"), path.join(outputDirectory, "assets"), { recursive: true });
 await cp(path.join(publicDirectory, "app.js"), path.join(outputDirectory, "app.js"));
+await cp(path.join(publicDirectory, "auth-client.js"), path.join(outputDirectory, "auth-client.js"));
 await cp(path.join(publicDirectory, "styles.css"), path.join(outputDirectory, "styles.css"));
 
 const html = await readFile(path.join(projectRoot, "legacy-index.html"), "utf8");

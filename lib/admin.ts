@@ -1,9 +1,11 @@
-import { getChatGPTUser } from "../app/chatgpt-auth";
+import { getAuth } from "./auth";
 import { database, json } from "./neon";
 
 export async function requireAdmin() {
-  const user = await getChatGPTUser();
+  const { data: session } = await getAuth().getSession();
+  const user = session?.user;
   if (!user) return { response: json({ error: "Entre na sua conta para continuar." }, 401) };
+  if (!user.emailVerified) return { response: json({ error: "Verifique seu e-mail para continuar." }, 403) };
   const sql = database();
   const rows = await sql.query(
     "SELECT role FROM admin_memberships WHERE email = $1 LIMIT 1",
@@ -46,6 +48,7 @@ export function validId(input: unknown) {
 export function publicMediaUrl(input: unknown) {
   const raw = value(input, 2000);
   if (!raw) return "";
+  if (/^\/api\/media\/products\/[0-9a-f-]+\.(jpg|png|webp|glb|usdz)$/i.test(raw)) return raw;
   try {
     const url = new URL(raw);
     return url.protocol === "https:" ? url.toString() : "";

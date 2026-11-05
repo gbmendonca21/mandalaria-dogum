@@ -15,7 +15,11 @@ if (connection.status !== 0 || !databaseUrl) {
 
 const child = spawn("npm", ["run", "dev", "--", ...process.argv.slice(2)], {
   stdio: "inherit",
-  env: { ...process.env, DATABASE_URL: databaseUrl },
+  env: {
+    ...process.env,
+    DATABASE_URL: databaseUrl,
+    NEON_AUTH_BASE_URL: "https://ep-blue-hat-b7uuad7c.neonauth.c-13.us-east-1.aws.neon.tech/mandalaria/auth",
+  },
 });
 
 child.on("exit", code => process.exit(code ?? 1));

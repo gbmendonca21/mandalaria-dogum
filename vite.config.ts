@@ -33,8 +33,9 @@ const localBindingConfig = {
           binding: r2,
           bucket_name: "site-creator-r2",
         },
+        { binding: "BUCKET", bucket_name: "mandalaria-media" },
       ]
-    : [],
+    : [{ binding: "BUCKET", bucket_name: "mandalaria-media" }],
 };
 
 export default defineConfig(async ({ command }) => {
@@ -61,9 +62,12 @@ export default defineConfig(async ({ command }) => {
         inspectorPort: false,
         config: {
           ...localBindingConfig,
-          ...(command === "serve" && process.env.DATABASE_URL
-            ? { vars: { DATABASE_URL: process.env.DATABASE_URL } }
-            : {}),
+          vars: {
+            NEON_AUTH_BASE_URL: process.env.NEON_AUTH_BASE_URL ?? "https://ep-shiny-waterfall-b7innoi8.neonauth.c-13.us-east-1.aws.neon.tech/mandalaria/auth",
+            ...(command === "serve" && process.env.DATABASE_URL
+              ? { DATABASE_URL: process.env.DATABASE_URL }
+              : {}),
+          },
           ...(command === "serve"
             ? {
                 services: [

@@ -8,6 +8,7 @@ let products = [];
 let categories = [];
 let adminProducts = [];
 let adminCategories = [];
+let adminOrders = [];
 let me = { authenticated: false, admin: false };
 let cart = load(STORAGE_CART, {});
 let activeCategory = 'Todos';
@@ -19,6 +20,7 @@ let roomPhotoUrl = null;
 let arPendingReturn = false;
 let arReturnGuardUntil = 0;
 let catalogError = false;
+let accountMode = 'signin';
 
 function openDialog(selector) { const dialog = $(selector); if (!dialog.open) dialog.showModal(); }
 function closeDialogs() { document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close()); }
@@ -131,7 +133,13 @@ function setupPreview() {
 function updateSearch() { searchTerm = $('#searchInput').value.trim(); $('#catalogSearch').value = searchTerm; activeCategory = 'Todos'; renderProducts(); closeDialogs(); $('#colecao').scrollIntoView({ behavior: 'smooth' }); }
 function makeOrderMessage(form) { const data = Object.fromEntries(new FormData(form).entries()); return `Olá! Gostaria de solicitar uma encomenda personalizada na Mandalaria D'ogum.\n\n*Nome:* ${data.name.trim()}\n*Tipo de peça:* ${data.type}\n*Cores desejadas:* ${data.colors.trim()}\n*Tamanho:* ${data.size}\n*Prazo desejado:* ${data.deadline || 'A combinar'}\n*Orçamento:* ${data.budget}\n*Detalhes:* ${data.details.trim() || 'A conversar'}\n\nPodemos conversar sobre o projeto?`; }
 function renderAccount() {
-  $('#accountContent').innerHTML = me.authenticated ? `<p>Conectado como <strong>${escapeHtml(me.displayName || me.email)}</strong><br><small>${escapeHtml(me.email)}</small></p>${me.admin ? '<button class="button button-terracotta full-button" id="openAdminFromAccount">Abrir painel da loja</button>' : '<p>Seu acesso de cliente está ativo.</p>'}<a class="button button-outline full-button account-link" href="/signout-with-chatgpt?return_to=%2F" target="_top">Sair da conta</a>` : '<p>Entre para acessar sua conta e, se autorizado, administrar o catálogo.</p><a class="button button-dark full-button account-link" href="/signin-with-chatgpt?return_to=%2F" target="_top">Entrar com ChatGPT ↗</a>';
+  const host = $('#accountContent');
+  if (!me.authenticated) {
+    host.innerHTML = `<p>Acesse sua conta para acompanhar pedidos ou administrar a loja.</p><form id="accountAuthForm" class="admin-form">${accountMode === 'signup' ? '<label>Nome<input name="name" required autocomplete="name" maxlength="100"></label>' : ''}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Senha<input name="password" type="password" required minlength="8" autocomplete="${accountMode === 'signup' ? 'new-password' : 'current-password'}"></label><button class="button button-dark full-button" type="submit">${accountMode === 'signup' ? 'Criar conta' : 'Entrar'}</button><button class="text-button" type="button" id="toggleAuthMode">${accountMode === 'signup' ? 'Já tenho uma conta' : 'Criar uma conta'}</button>${accountMode === 'signin' ? '<button class="text-button" type="button" id="forgotPassword">Esqueci minha senha</button>' : ''}<p id="authMessage" role="status"></p></form>`;
+    return;
+  }
+  const verification = !me.emailVerified ? `<form id="verifyEmailForm" class="admin-form"><p>Confirme seu e-mail para liberar o painel administrativo.</p><label>Código de verificação<input name="otp" inputmode="numeric" autocomplete="one-time-code" required></label><button class="button button-dark full-button" type="submit">Verificar e-mail</button><button class="text-button" type="button" id="sendVerificationCode">Enviar código novamente</button><p id="authMessage" role="status"></p></form>` : '';
+  host.innerHTML = `<p>Conectado como <strong>${escapeHtml(me.displayName || me.email)}</strong><br><small>${escapeHtml(me.email)}</small></p>${verification}${me.admin ? '<button class="button button-terracotta full-button" id="openAdminFromAccount">Abrir painel da loja</button>' : me.emailVerified ? '<p>Seu acesso de cliente está ativo.</p>' : ''}<button class="button button-outline full-button account-link" id="signOutButton">Sair da conta</button>`;
 }
 async function openAdmin() {
   if (!me.admin) { renderAccount(); openDialog('#accountDialog'); return; }
@@ -146,24 +154,44 @@ function renderAdmin() {
   const host = $('#adminContent');
   if (adminTab === 'products') {
     host.innerHTML = `<button class="button button-terracotta admin-new" id="adminNew">+ Novo produto</button><div id="adminFormHost"></div><div>${adminProducts.map(item => `<div class="admin-row"><div><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.category)} · ${currency(item.price)} · ${item.status === 'active' ? 'Publicado' : item.status === 'draft' ? 'Rascunho' : 'Arquivado'}</small></div><div><button data-admin-edit="${escapeHtml(item.id)}">Editar</button><button data-admin-delete="${escapeHtml(item.id)}">Excluir</button></div></div>`).join('') || '<p class="admin-empty">Nenhum produto cadastrado.</p>'}</div>`;
-  } else {
+  } else if (adminTab === 'categories') {
     host.innerHTML = `<form id="categoryForm" class="admin-form"><h3>Adicionar categoria</h3><div class="form-grid"><label>Nome<input name="name" required placeholder="Ex.: Mandalas"></label><label>Descrição<input name="description" placeholder="Opcional"></label></div><button class="button button-terracotta" type="submit">Adicionar</button></form><div>${adminCategories.map(item => `<div class="admin-row"><div><strong>${escapeHtml(item.name)}</strong><small>${item.active ? 'Visível' : 'Oculta'}</small></div><div><button data-category-edit="${escapeHtml(item.id)}">Editar</button><button data-category-delete="${escapeHtml(item.id)}">Excluir</button></div></div>`).join('') || '<p class="admin-empty">Nenhuma categoria cadastrada.</p>'}</div>`;
+  } else {
+    const statusLabels = { pending_payment: 'Aguardando pagamento', paid: 'Pago', preparing: 'Em preparação', shipped: 'Enviado', delivered: 'Entregue', cancelled: 'Cancelado', refunded: 'Reembolsado' };
+    host.innerHTML = adminOrders.map(order => {
+      const address = order.shipping_address || {};
+      const editable = order.payment_status === 'approved' && ['paid', 'preparing', 'shipped'].includes(order.status);
+      const nextStatus = order.status === 'paid' ? 'preparing' : order.status === 'preparing' ? 'shipped' : 'delivered';
+      const items = (order.items || []).map(item => `${escapeHtml(item.quantity)} × ${escapeHtml(item.name)}`).join(', ');
+      return `<div class="admin-row order-row"><div><strong>Pedido ${escapeHtml(order.id.slice(0, 8))} · ${currency(Number(order.total_cents) / 100)}</strong><small>${escapeHtml(order.customer_name)} · ${escapeHtml(order.customer_email)} · ${escapeHtml(order.customer_phone || '')}</small><small>${items}</small><small>${escapeHtml(address.street || '')}, ${escapeHtml(address.number || '')} · ${escapeHtml(address.neighborhood || '')} · ${escapeHtml(address.city || '')}/${escapeHtml(address.state || '')} · CEP ${escapeHtml(address.zipCode || '')}</small><small>${statusLabels[order.status] || escapeHtml(order.status)} · pagamento ${escapeHtml(order.payment_status)} · ${new Date(order.created_at).toLocaleString('pt-BR')}</small></div>${editable ? `<button data-order-save="${escapeHtml(order.id)}" data-next-status="${nextStatus}">Marcar ${nextStatus === 'preparing' ? 'em preparação' : nextStatus === 'shipped' ? 'como enviado' : 'como entregue'}</button>` : ''}</div>`;
+    }).join('') || '<p class="admin-empty">Ainda não há pedidos.</p>';
   }
 }
 function renderAdminForm(id = null) {
   adminEditing = id;
   const item = id ? adminProducts.find(product => product.id === id) : null;
-  $('#adminFormHost').innerHTML = `<form id="productForm" class="admin-form"><h3>${item ? 'Editar produto' : 'Novo produto'}</h3><div class="form-grid"><label>Nome<input name="name" required maxlength="140" value="${escapeHtml(item?.name || '')}"></label><label>Categoria<select name="categoryId" required><option value="">Selecione</option>${adminCategories.map(cat => `<option value="${escapeHtml(cat.id)}" ${item?.categoryId === cat.id ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`).join('')}</select></label><label>Preço (R$)<input name="price" type="number" min="0" step="0.01" required value="${item ? item.price.toFixed(2) : ''}"></label><label>Estoque<input name="stockQuantity" type="number" min="0" step="1" required value="${item?.stockQuantity ?? 0}"></label><label>Largura (cm)<input name="widthCm" type="number" min="0.01" step="0.01" value="${item?.widthCm ?? ''}"></label><label>Altura (cm)<input name="heightCm" type="number" min="0.01" step="0.01" value="${item?.heightCm ?? ''}"></label><label>Profundidade (cm)<input name="depthCm" type="number" min="0.01" step="0.01" value="${item?.depthCm ?? ''}"></label><label>Materiais<input name="materials" maxlength="500" value="${escapeHtml(item?.material || '')}"></label><label>Estado<select name="status"><option value="draft" ${item?.status !== 'active' && item?.status !== 'archived' ? 'selected' : ''}>Rascunho</option><option value="active" ${item?.status === 'active' ? 'selected' : ''}>Publicado</option><option value="archived" ${item?.status === 'archived' ? 'selected' : ''}>Arquivado</option></select></label><label>Tipo<select name="madeToOrder"><option value="false" ${!item?.madeToOrder ? 'selected' : ''}>Pronta entrega</option><option value="true" ${item?.madeToOrder ? 'selected' : ''}>Sob encomenda</option></select></label><label>Foto (URL HTTPS)<input name="imageUrl" type="url" placeholder="https://..." value="${escapeHtml(item?.imageUrl || '')}"></label><label>Modelo 3D GLB (URL HTTPS)<input name="glbUrl" type="url" placeholder="https://..." value="${escapeHtml(item?.glbUrl || '')}"></label><label>Modelo iPhone USDZ (URL HTTPS)<input name="usdzUrl" type="url" placeholder="https://..." value="${escapeHtml(item?.usdzUrl || '')}"></label><label>Destaque<select name="featured"><option value="false" ${!item?.featured ? 'selected' : ''}>Não</option><option value="true" ${item?.featured ? 'selected' : ''}>Sim</option></select></label></div><label class="admin-wide">Descrição<textarea name="description" rows="4" maxlength="4000">${escapeHtml(item?.description || '')}</textarea></label><button class="button button-dark" type="submit">Salvar produto</button><button type="button" class="text-button" id="cancelAdminForm">Cancelar</button></form>`;
+  $('#adminFormHost').innerHTML = `<form id="productForm" class="admin-form"><h3>${item ? 'Editar produto' : 'Novo produto'}</h3><div class="form-grid"><label>Nome<input name="name" required maxlength="140" value="${escapeHtml(item?.name || '')}"></label><label>Categoria<select name="categoryId" required><option value="">Selecione</option>${adminCategories.map(cat => `<option value="${escapeHtml(cat.id)}" ${item?.categoryId === cat.id ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`).join('')}</select></label><label>Preço (R$)<input name="price" type="number" min="0" step="0.01" required value="${item ? item.price.toFixed(2) : ''}"></label><label>Estoque<input name="stockQuantity" type="number" min="0" step="1" required value="${item?.stockQuantity ?? 0}"></label><label>Largura (cm)<input name="widthCm" type="number" min="0.01" step="0.01" value="${item?.widthCm ?? ''}"></label><label>Altura (cm)<input name="heightCm" type="number" min="0.01" step="0.01" value="${item?.heightCm ?? ''}"></label><label>Profundidade (cm)<input name="depthCm" type="number" min="0.01" step="0.01" value="${item?.depthCm ?? ''}"></label><label>Materiais<input name="materials" maxlength="500" value="${escapeHtml(item?.material || '')}"></label><label>Estado<select name="status"><option value="draft" ${item?.status !== 'active' && item?.status !== 'archived' ? 'selected' : ''}>Rascunho</option><option value="active" ${item?.status === 'active' ? 'selected' : ''}>Publicado</option><option value="archived" ${item?.status === 'archived' ? 'selected' : ''}>Arquivado</option></select></label><label>Tipo<select name="madeToOrder"><option value="false" ${!item?.madeToOrder ? 'selected' : ''}>Pronta entrega</option><option value="true" ${item?.madeToOrder ? 'selected' : ''}>Sob encomenda</option></select></label><label>Foto (URL HTTPS, opcional)<input name="imageUrl" type="url" placeholder="https://..." value="${escapeHtml(item?.imageUrl || '')}"></label><label>Enviar foto (JPG/PNG/WebP, até 10 MB)<input name="imageFile" type="file" accept="image/jpeg,image/png,image/webp"></label><label>Modelo 3D GLB (URL HTTPS, opcional)<input name="glbUrl" type="url" placeholder="https://..." value="${escapeHtml(item?.glbUrl || '')}"></label><label>Enviar modelo GLB (até 50 MB)<input name="glbFile" type="file" accept=".glb,model/gltf-binary"></label><label>Modelo iPhone USDZ (URL HTTPS, opcional)<input name="usdzUrl" type="url" placeholder="https://..." value="${escapeHtml(item?.usdzUrl || '')}"></label><label>Enviar modelo USDZ (até 50 MB)<input name="usdzFile" type="file" accept=".usdz,model/vnd.usdz+zip"></label><label>Destaque<select name="featured"><option value="false" ${!item?.featured ? 'selected' : ''}>Não</option><option value="true" ${item?.featured ? 'selected' : ''}>Sim</option></select></label></div><label class="admin-wide">Descrição<textarea name="description" rows="4" maxlength="4000">${escapeHtml(item?.description || '')}</textarea></label><button class="button button-dark" type="submit">Salvar produto</button><button type="button" class="text-button" id="cancelAdminForm">Cancelar</button></form>`;
 }
-async function refreshAdminAndCatalog() { const data = await api('/api/admin/catalog'); adminProducts = data.products.map(displayProduct); adminCategories = data.categories; await loadCatalog(); renderAdmin(); }
+async function refreshAdminAndCatalog() { const data = await api('/api/admin/catalog'); adminProducts = data.products.map(displayProduct); adminCategories = data.categories; await loadCatalog(); if (adminTab === 'orders') { const orders = await api('/api/admin/orders'); adminOrders = orders.orders; } renderAdmin(); }
+async function uploadMedia(file) {
+  const form = new FormData(); form.append('file', file);
+  const response = await fetch('/api/media', { method: 'POST', credentials: 'same-origin', body: form });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Não foi possível enviar o arquivo.');
+  return result.url;
+}
 async function submitProduct(form) {
   const data = Object.fromEntries(new FormData(form).entries());
+  const fileOrUrl = async (field, fileField) => data[fileField]?.size ? uploadMedia(data[fileField]) : data[field];
+  const [imageUrl, glbUrl, usdzUrl] = await Promise.all([
+    fileOrUrl('imageUrl', 'imageFile'), fileOrUrl('glbUrl', 'glbFile'), fileOrUrl('usdzUrl', 'usdzFile'),
+  ]);
   const priceCents = Math.round(Number(data.price) * 100);
   const body = { id: adminEditing, name: data.name, categoryId: data.categoryId, priceCents,
     stockQuantity: Number(data.stockQuantity), widthCm: data.widthCm, heightCm: data.heightCm,
     depthCm: data.depthCm, materials: data.materials, description: data.description,
     status: data.status, madeToOrder: data.madeToOrder === 'true', featured: data.featured === 'true',
-    imageUrl: data.imageUrl, glbUrl: data.glbUrl, usdzUrl: data.usdzUrl };
+    imageUrl, glbUrl, usdzUrl };
   await mutate('/api/admin/products', adminEditing ? 'PATCH' : 'POST', body);
   await refreshAdminAndCatalog();
 }
@@ -191,10 +219,34 @@ document.addEventListener('click', async event => {
   if (target.id === 'modelTrigger') { $('#modelBox').classList.toggle('open'); return; }
   if (target.id === 'arStart') { const viewer = $('#arViewer'); if (viewer?.canActivateAR) { arPendingReturn = true; arReturnGuardUntil = Date.now() + 2200; Promise.resolve(viewer.activateAR()).catch(() => { arPendingReturn = false; showInfo('AR indisponível', 'Não foi possível abrir a câmera neste aparelho.'); }); } return; }
   if (target.id === 'openAdminFromAccount') { await openAdmin(); return; }
+  if (target.id === 'toggleAuthMode') { accountMode = accountMode === 'signup' ? 'signin' : 'signup'; renderAccount(); return; }
+  if (target.id === 'sendVerificationCode') {
+    try {
+      const result = await window.MANDALARIA_AUTH.emailOtp.sendVerificationOtp({ email: me.email, type: 'email-verification' });
+      if (result.error) throw new Error(result.error.message || 'Não foi possível enviar o código.');
+      $('#authMessage').textContent = 'Enviamos um novo código para seu e-mail.';
+    } catch (error) { $('#authMessage').textContent = error.message; }
+    return;
+  }
+  if (target.id === 'signOutButton') {
+    try { await window.MANDALARIA_AUTH.signOut(); me = { authenticated: false, admin: false }; renderAccount(); }
+    catch (error) { showInfo('Não foi possível sair', error.message); }
+    return;
+  }
   if (target.id === 'adminNew') { renderAdminForm(); return; }
   if (target.dataset.adminEdit) { renderAdminForm(target.dataset.adminEdit); return; }
   if (target.dataset.adminDelete) { const item = adminProducts.find(product => product.id === target.dataset.adminDelete); if (item && confirm(`Excluir ${item.name} da loja?`)) { try { await mutate('/api/admin/products', 'DELETE', { id: item.id }); delete cart[item.id]; saveCart(); await refreshAdminAndCatalog(); } catch (error) { showInfo('Não foi possível excluir', error.message); } } return; }
-  if (target.dataset.adminTab) { adminTab = target.dataset.adminTab; renderAdmin(); return; }
+  if (target.dataset.adminTab) {
+    adminTab = target.dataset.adminTab;
+    try { if (adminTab === 'orders') { const data = await api('/api/admin/orders'); adminOrders = data.orders; } renderAdmin(); }
+    catch (error) { showInfo('Não foi possível carregar pedidos', error.message); }
+    return;
+  }
+  if (target.dataset.orderSave) {
+    try { await mutate('/api/admin/orders', 'PATCH', { id: target.dataset.orderSave, status: target.dataset.nextStatus }); const data = await api('/api/admin/orders'); adminOrders = data.orders; renderAdmin(); }
+    catch (error) { showInfo('Não foi possível atualizar o pedido', error.message); }
+    return;
+  }
   if (target.dataset.categoryEdit) { const item = adminCategories.find(cat => cat.id === target.dataset.categoryEdit); const name = prompt('Nome da categoria:', item?.name)?.trim(); if (item && name) { try { await mutate('/api/admin/categories', 'PATCH', { ...item, name }); await refreshAdminAndCatalog(); } catch (error) { showInfo('Não foi possível editar', error.message); } } return; }
   if (target.dataset.categoryDelete) { const item = adminCategories.find(cat => cat.id === target.dataset.categoryDelete); if (item && confirm(`Excluir a categoria ${item.name}?`)) { try { await mutate('/api/admin/categories', 'DELETE', { id: item.id }); activeCategory = 'Todos'; await refreshAdminAndCatalog(); } catch (error) { showInfo('Não foi possível excluir', error.message); } } return; }
   if (target.id === 'cancelAdminForm') { $('#adminFormHost').innerHTML = ''; return; }
@@ -205,6 +257,36 @@ document.addEventListener('input', event => { if (event.target.id === 'roomScale
 $('#productDialog').addEventListener('close', () => { if (roomPhotoUrl) URL.revokeObjectURL(roomPhotoUrl); roomPhotoUrl = null; });
 document.addEventListener('visibilitychange', () => { if (document.hidden || !arPendingReturn) return; arPendingReturn = false; arReturnGuardUntil = Date.now() + 2200; if (!$('#productDialog').open && currentProduct) openDialog('#productDialog'); });
 document.addEventListener('submit', async event => {
+  if (event.target.id === 'accountAuthForm') {
+    event.preventDefault();
+    const form = event.target, data = Object.fromEntries(new FormData(form).entries()), button = form.querySelector('[type="submit"]');
+    button.disabled = true;
+    try {
+      const result = accountMode === 'signup'
+        ? await window.MANDALARIA_AUTH.signUp.email({ name: data.name, email: data.email, password: data.password })
+        : await window.MANDALARIA_AUTH.signIn.email({ email: data.email, password: data.password });
+      if (result.error) throw new Error(result.error.message || 'Não foi possível entrar.');
+      if (accountMode === 'signup') {
+        const sent = await window.MANDALARIA_AUTH.emailOtp.sendVerificationOtp({ email: data.email, type: 'email-verification' });
+        if (sent.error) throw new Error(sent.error.message || 'Conta criada, mas não foi possível enviar o código.');
+      }
+      await loadMe(); renderAccount();
+    } catch (error) {
+      const message = $('#authMessage'); if (message) message.textContent = error.message;
+      button.disabled = false;
+    }
+    return;
+  }
+  if (event.target.id === 'verifyEmailForm') {
+    event.preventDefault();
+    const otp = new FormData(event.target).get('otp');
+    try {
+      const result = await window.MANDALARIA_AUTH.emailOtp.verifyEmail({ email: me.email, otp });
+      if (result.error) throw new Error(result.error.message || 'Código inválido.');
+      await loadMe(); renderAccount();
+    } catch (error) { $('#authMessage').textContent = error.message; }
+    return;
+  }
   if (event.target.id === 'customForm') { event.preventDefault(); const message = makeOrderMessage(event.target); $('#customMessage').value = message; $('#customStatus').textContent = `A mensagem será aberta para ${STORE_WHATSAPP}. Revise os dados antes de enviar.`; $('#openWhatsApp').href = `https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent(message)}`; $('#customResult').hidden = false; $('#customResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return; }
   if (event.target.id === 'productForm' || event.target.id === 'categoryForm') { event.preventDefault(); const form = event.target, button = form.querySelector('[type="submit"]'); button.disabled = true; try { if (form.id === 'productForm') await submitProduct(form); else await submitCategory(form); } catch (error) { showInfo('Não foi possível salvar', error.message); button.disabled = false; } }
 });
@@ -222,10 +304,31 @@ $('#clearFilters').addEventListener('click', () => { $('#maxPrice').value = $('#
 $('#resetSearch').addEventListener('click', () => { searchTerm = ''; activeCategory = 'Todos'; $('#searchInput').value = ''; $('#catalogSearch').value = ''; $('#maxPrice').value = $('#maxPrice').max; $('#stockOnly').checked = false; renderProducts(); });
 $('#customButton').addEventListener('click', () => openDialog('#customDialog'));
 $('#copyMessage').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('#customMessage').value); $('#copyMessage').textContent = 'Copiado ✓'; setTimeout(() => $('#copyMessage').textContent = 'Copiar mensagem', 2200); } catch { showInfo('Não foi possível copiar', 'Selecione o texto da mensagem e copie manualmente.'); } });
-$('#checkoutButton').addEventListener('click', () => { closeCart(); showInfo('Pagamento em preparação', 'O carrinho está pronto para receber produtos reais. O pagamento será ativado após a criação da conta Mercado Pago da loja.'); });
+$('#checkoutButton').addEventListener('click', () => { closeCart(); openDialog('#checkoutDialog'); });
+document.addEventListener('submit', async event => {
+  if (event.target.id !== 'checkoutForm') return;
+  event.preventDefault();
+  const form = event.target, button = form.querySelector('[type="submit"]'), message = $('#checkoutMessage');
+  button.disabled = true; message.textContent = 'Preparando seu pedido...';
+  try {
+    const customer = Object.fromEntries(new FormData(form).entries());
+    const items = Object.entries(cart).map(([productId, quantity]) => ({ productId, quantity }));
+    const result = await mutate('/api/checkout', 'POST', { customer, items });
+    location.assign(result.checkoutUrl);
+  } catch (error) { message.textContent = error.message; button.disabled = false; }
+});
 $('#footerContact').addEventListener('click', () => { location.href = `https://wa.me/${STORE_WHATSAPP}`; });
 $('#footerWhatsApp').addEventListener('click', () => { location.href = `https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent("Olá! Vim pelo site da Mandalaria D'ogum e gostaria de conversar.")}`; });
 $('#newsletterContact').addEventListener('click', () => { location.href = `https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent("Olá! Gostaria de acompanhar as novidades da Mandalaria D'ogum.")}`; });
 $('#adminDemo').addEventListener('click', openAdmin);
 $('#currentYear').textContent = new Date().getFullYear();
+const paymentResult = new URLSearchParams(location.search).get('payment');
+if (paymentResult) {
+  const messages = {
+    success: ['Pagamento recebido', 'Estamos confirmando seu pagamento. A confirmação final é enviada pelo Mercado Pago.'],
+    pending: ['Pagamento pendente', 'O Mercado Pago ainda está processando seu pagamento.'],
+    failure: ['Pagamento não concluído', 'Seu pedido ainda não foi confirmado. Você pode tentar novamente pelo carrinho.'],
+  };
+  if (messages[paymentResult]) showInfo(...messages[paymentResult]);
+}
 renderProducts(); renderCart(); Promise.all([loadCatalog(), loadMe()]);
