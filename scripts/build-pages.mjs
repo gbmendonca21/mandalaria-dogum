@@ -6,7 +6,7 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const outputDirectory = path.join(projectRoot, "dist-pages");
 const publicDirectory = path.join(projectRoot, "public");
 const catalogUrl = process.env.MANDALARIA_CATALOG_URL
-  ?? "https://mandalaria-dogum.azurenote4099.chatgpt.site/api/catalog";
+  ?? "https://mandalaria-dogum.mandalaria-dogum-shop.workers.dev/api/catalog";
 
 const response = await fetch(catalogUrl, { headers: { accept: "application/json" } });
 if (!response.ok) {
@@ -36,7 +36,7 @@ await writeFile(
       "<body>",
       '<body>\n<div class="pages-preview-note" role="note">Prévia visual no GitHub Pages. O catálogo atual tem ' +
         `${catalog.products.length} ${catalog.products.length === 1 ? "produto publicado" : "produtos publicados"}. ` +
-        '<a href="https://mandalaria-dogum.azurenote4099.chatgpt.site/">Abrir a loja completa com login e painel ↗</a></div>',
+      '<a href="https://mandalaria-dogum.mandalaria-dogum-shop.workers.dev/">Abrir a loja completa com login e painel ↗</a></div>',
     ),
 );
 

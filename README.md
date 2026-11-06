@@ -1,6 +1,6 @@
 # Mandalaria D'ogum
 
-Loja em migração para Cloudflare Workers, com rotas de servidor, arquivos no Neon Object Storage e PostgreSQL no Neon. A vitrine está em `legacy-index.html` e é servida pela rota `app/route.ts`.
+Loja publicada em [Cloudflare Workers](https://mandalaria-dogum.mandalaria-dogum-shop.workers.dev/), com rotas de servidor, arquivos no Neon Object Storage e PostgreSQL no Neon. A vitrine está em `legacy-index.html` e é servida pela rota `app/route.ts`.
 
 A prévia em <https://gbmendonca21.github.io/mandalaria-dogum/> é gerada por `npm run build:pages` e publicada pelo workflow do GitHub. Ela contém um retrato do catálogo público no momento do build e somente os recursos que funcionam sem servidor. O login, o painel administrativo e o banco funcionam na versão Sites; mudanças no catálogo exigem uma nova execução do workflow para aparecer no Pages.
 
@@ -19,19 +19,17 @@ O catálogo ainda está vazio até o cadastro de produtos reais. O checkout depe
 
 O projeto Neon `mandalaria-dogum` usa o banco `mandalaria` nas branches `main` e `development`. As migrações [`neon/001_init.sql`](neon/001_init.sql) e [`neon/002_site_owner.sql`](neon/002_site_owner.sql) foram aplicadas em ambas. Os identificadores estão em [`neon/README.md`](neon/README.md). Neon Auth foi habilitado nas duas branches.
 
-`DATABASE_URL` e `NEON_AUTH_COOKIE_SECRET` são segredos de servidor. Nunca os coloque em `public/`, no Git ou no navegador. O painel verifica a sessão Neon Auth, a confirmação do e-mail e a tabela `admin_memberships`; as contas da dona da loja já estão cadastradas como `owner`.
+`DATABASE_URL`, `NEON_AUTH_COOKIE_SECRET` e as credenciais S3 do Neon são segredos de servidor. Nunca os coloque em `public/`, no Git ou no navegador. O painel verifica a sessão Neon Auth, a confirmação do e-mail e a tabela `admin_memberships`; as contas da dona da loja já estão cadastradas como `owner`.
 
 ## Publicação na Cloudflare
 
-O workflow `.github/workflows/cloudflare.yml` compila o Worker em atualizações da branch `main` e publica quando as credenciais Cloudflare do GitHub estão configuradas. Sem essas credenciais, ele conclui o build e pula a publicação. Antes do primeiro deploy:
+O Worker de produção já está publicado e ligado ao Neon Auth e ao Object Storage. O checkout ainda precisa das credenciais da conta Mercado Pago e do frete fixo. Para habilitar publicação automática após mudanças na branch `main`:
 
-1. O bucket privado `mandalaria-media` já foi criado no branch principal do Neon. Configure `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` como segredos do Worker; o endpoint S3 e a região são definidos no build.
-2. Cadastre `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` como segredos do GitHub Actions para publicações automáticas.
-3. Configure os segredos do Worker `DATABASE_URL`, `NEON_AUTH_COOKIE_SECRET`, `MERCADOPAGO_ACCESS_TOKEN` e `MERCADOPAGO_WEBHOOK_SECRET`.
-4. Configure `SHIPPING_CENTS` com o frete fixo em centavos e adicione o domínio do Worker à lista de origens confiáveis do Neon Auth.
-5. No Mercado Pago, configure o webhook de pagamentos para `/api/webhooks/mercadopago`.
+1. Cadastre `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` como segredos do GitHub Actions. Sem eles, o workflow compila e pula a publicação.
+2. Configure no Worker os segredos `MERCADOPAGO_ACCESS_TOKEN` e `MERCADOPAGO_WEBHOOK_SECRET`, mais a variável `SHIPPING_CENTS` com o frete fixo em centavos.
+3. No Mercado Pago, configure o webhook de pagamentos para `/api/webhooks/mercadopago`.
 
-O GitHub Pages continua como vitrine estática até a migração para Cloudflare ser concluída. Login, administração, uploads e checkout precisam do Worker.
+O GitHub Pages continua como prévia estática do catálogo. Login, administração, uploads e checkout funcionam somente no Worker.
 
 ## Desenvolvimento local
 
@@ -42,6 +40,6 @@ npm ci
 npm run dev:neon
 ```
 
-Abra `http://127.0.0.1:5173`. O script usa a branch `development` do Neon sem gravar a URL do banco em arquivo. `.dev.vars` guarda o segredo local de sessão e não deve ser versionado.
+Abra `http://127.0.0.1:5173`. O script usa a branch `development` do Neon sem gravar a URL do banco em arquivo. `.dev.vars` guarda segredos locais de sessão e armazenamento e não deve ser versionado.
 
 A compilação gera `dist/`, que não é versionada. O arquivo `generate_photo_ar.py` permanece como referência para criar uma prévia 3D a partir de uma foto; modelos fiéis devem ser feitos a partir das peças reais.
