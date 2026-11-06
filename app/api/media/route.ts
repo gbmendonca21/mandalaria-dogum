@@ -1,6 +1,7 @@
-import { env } from "cloudflare:workers";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { requireAdmin } from "../../../lib/admin";
 import { json } from "../../../lib/neon";
+import { getStorageClient, MEDIA_BUCKET } from "../../../lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,8 @@ export async function POST(request: Request) {
     }
     const { response } = await requireAdmin();
     if (response) return response;
-    if (!env.BUCKET) return json({ error: "O armazenamento de mídia não está configurado." }, 503);
+    const storage = getStorageClient();
+    if (!storage) return json({ error: "O armazenamento de mídia não está configurado." }, 503);
     const form = await request.formData();
     const file = form.get("file");
     if (!(file instanceof File) || file.size === 0) return json({ error: "Selecione um arquivo." }, 400);
@@ -36,10 +38,17 @@ export async function POST(request: Request) {
     if (!type) return json({ error: "Envie uma imagem JPG, PNG ou WebP, ou um modelo GLB/USDZ." }, 415);
     if (file.size > type.limit) return json({ error: `O arquivo excede o limite de ${Math.floor(type.limit / 1024 / 1024)} MB.` }, 413);
     const key = `products/${crypto.randomUUID()}.${type.extension}`;
-    await env.BUCKET.put(key, file.stream(), {
-      httpMetadata: { contentType: type.contentType, cacheControl: "public, max-age=31536000, immutable" },
-      customMetadata: { originalName: file.name.slice(0, 200) },
-    });
+    await storage.send(
+      new PutObjectCommand({
+        Bucket: MEDIA_BUCKET,
+        Key: key,
+        Body: new Uint8Array(await file.arrayBuffer()),
+        ContentLength: file.size,
+        ContentType: type.contentType,
+        CacheControl: "public, max-age=31536000, immutable",
+        Metadata: { originalName: file.name.slice(0, 200) },
+      }),
+    );
     return json({ url: `/api/media/${key}`, key }, 201);
   } catch (error) {
     console.error("Media upload failed", error);

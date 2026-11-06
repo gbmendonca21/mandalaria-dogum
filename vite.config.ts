@@ -33,13 +33,15 @@ const localBindingConfig = {
           binding: r2,
           bucket_name: "site-creator-r2",
         },
-        { binding: "BUCKET", bucket_name: "mandalaria-media" },
       ]
-    : [{ binding: "BUCKET", bucket_name: "mandalaria-media" }],
+    : [],
 };
 
 export default defineConfig(async ({ command }) => {
   configureToolEnvironment(process.cwd());
+  const mediaStorageEndpoint = command === "serve"
+    ? "https://br-shiny-dream-b7wz661q.storage.c-13.us-east-1.aws.neon.tech"
+    : "https://br-proud-mode-b7tlck4b.storage.c-13.us-east-1.aws.neon.tech";
 
   // Wrangler snapshots its log path while the Cloudflare plugin is imported.
   const { cloudflare } = await import("@cloudflare/vite-plugin");
@@ -64,6 +66,8 @@ export default defineConfig(async ({ command }) => {
           ...localBindingConfig,
           vars: {
             NEON_AUTH_BASE_URL: process.env.NEON_AUTH_BASE_URL ?? "https://ep-shiny-waterfall-b7innoi8.neonauth.c-13.us-east-1.aws.neon.tech/mandalaria/auth",
+            AWS_ENDPOINT_URL_S3: process.env.AWS_ENDPOINT_URL_S3 ?? mediaStorageEndpoint,
+            AWS_REGION: process.env.AWS_REGION ?? "us-east-1",
             ...(command === "serve" && process.env.DATABASE_URL
               ? { DATABASE_URL: process.env.DATABASE_URL }
               : {}),
