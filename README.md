@@ -31,6 +31,8 @@ O Worker de produção já está publicado e ligado ao Neon Auth e ao Object Sto
 
 O GitHub Pages continua como prévia estática do catálogo. Login, administração, uploads e checkout funcionam somente no Worker.
 
+Para publicar a partir de uma máquina autenticada no Wrangler, execute `npm run deploy:cloudflare`. Esse comando verifica os tipos, compila e publica preservando as variáveis configuradas no painel Cloudflare, como o frete fixo. Os segredos do Worker também são preservados.
+
 ## Desenvolvimento local
 
 Requer Node.js 22.13+ e autenticação do Neon CLI na máquina. A conexão local usa somente a branch `development`:
@@ -45,3 +47,5 @@ Abra `http://127.0.0.1:5173`. O script usa a branch `development` do Neon sem gr
 Antes de publicar, execute `npm run typecheck` e `npm run build`. O workflow do Cloudflare também executa essas verificações; um build bem-sucedido com o deploy pulado não atualiza o Worker em produção.
 
 A compilação gera `dist/`, que não é versionada. O arquivo `generate_photo_ar.py` permanece como referência para criar uma prévia 3D a partir de uma foto; modelos fiéis devem ser feitos a partir das peças reais.
+
+Os seis produtos conceituais da primeira vitrine permanecem no histórico do Git, em `febbe95:dist/app.js`. Somente a Mandala Aurora tinha uma prévia AR. O modelo `public/assets/mandala-preview.glb` e a foto `public/assets/mandala-recorte.png` continuam disponíveis; o GLB é uma imagem plana de 45 cm para testar a composição na parede. A vitrine atual oferece 3D/AR quando um produto publicado tem um arquivo GLB cadastrado, com USDZ opcional para iPhone. Os exemplos não foram inseridos como produtos reais no Neon.

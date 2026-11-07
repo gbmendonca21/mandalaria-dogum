@@ -8,8 +8,8 @@ import struct
 from pathlib import Path
 
 ROOT = Path(__file__).parent
-texture = (ROOT / "dist/assets/mandala-recorte.png").read_bytes()
-out = ROOT / "dist/assets/mandala-preview.glb"
+texture = (ROOT / "public/assets/mandala-recorte.png").read_bytes()
+out = ROOT / "public/assets/mandala-preview.glb"
 
 binary = bytearray()
 views = []

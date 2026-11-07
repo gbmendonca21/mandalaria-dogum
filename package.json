@@ -11,7 +11,7 @@
     "dev": "node scripts/build-auth-client.mjs && node scripts/run-framework.mjs dev",
     "build": "node scripts/build-auth-client.mjs && node scripts/run-framework.mjs build",
     "build:pages": "node scripts/build-auth-client.mjs && node scripts/build-pages.mjs",
-    "deploy:cloudflare": "npm run build && wrangler deploy --config dist/server/wrangler.json",
+    "deploy:cloudflare": "npm run typecheck && npm run build && wrangler deploy --keep-vars --config dist/server/wrangler.json",
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
