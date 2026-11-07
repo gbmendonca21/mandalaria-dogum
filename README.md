@@ -2,7 +2,7 @@
 
 Loja publicada em [Cloudflare Workers](https://mandalaria-dogum.mandalaria-dogum-shop.workers.dev/), com rotas de servidor, arquivos no Neon Object Storage e PostgreSQL no Neon. A vitrine está em `legacy-index.html` e é servida pela rota `app/route.ts`.
 
-A prévia em <https://gbmendonca21.github.io/mandalaria-dogum/> é gerada por `npm run build:pages` e publicada pelo workflow do GitHub. Ela contém um retrato do catálogo público no momento do build e somente os recursos que funcionam sem servidor. O login, o painel administrativo e o banco funcionam na versão Sites; mudanças no catálogo exigem uma nova execução do workflow para aparecer no Pages.
+A prévia em <https://gbmendonca21.github.io/mandalaria-dogum/> é gerada por `npm run build:pages` e publicada pelo workflow do GitHub. Ela contém um retrato do catálogo público no momento do build e somente os recursos que funcionam sem servidor. O login, o painel administrativo e o banco funcionam no Cloudflare Worker; mudanças no catálogo exigem uma nova execução do workflow para aparecer no Pages.
 
 ## O que funciona
 
@@ -41,5 +41,7 @@ npm run dev:neon
 ```
 
 Abra `http://127.0.0.1:5173`. O script usa a branch `development` do Neon sem gravar a URL do banco em arquivo. `.dev.vars` guarda segredos locais de sessão e armazenamento e não deve ser versionado.
+
+Antes de publicar, execute `npm run typecheck` e `npm run build`. O workflow do Cloudflare também executa essas verificações; um build bem-sucedido com o deploy pulado não atualiza o Worker em produção.
 
 A compilação gera `dist/`, que não é versionada. O arquivo `generate_photo_ar.py` permanece como referência para criar uma prévia 3D a partir de uma foto; modelos fiéis devem ser feitos a partir das peças reais.

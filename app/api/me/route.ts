@@ -17,7 +17,7 @@ export async function GET() {
       authenticated: true,
       emailVerified: user.emailVerified,
       email: user.email,
-      displayName: user.displayName,
+      displayName: user.name || user.email,
       admin: user.emailVerified && rows.length > 0,
       role: rows[0]?.role ?? null,
     });

@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: npm run install:ci
 
+      - name: Check TypeScript
+        run: npm run typecheck
+
       - name: Build Worker
         run: npm run build
 
@@ -41,7 +44,9 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Deployment skipped. Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to repository Actions secrets."
+            echo "::warning::Deployment skipped. Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to repository Actions secrets."
+            echo "### Cloudflare deployment skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "The build passed, but no Worker was published because CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are missing from repository Actions secrets." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Deploy to Cloudflare Workers
