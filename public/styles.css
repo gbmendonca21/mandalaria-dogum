@@ -59,3 +59,5 @@
 @media(max-width:500px){.product-photo.product-placeholder{padding:17%}.admin-row{align-items:flex-start}.admin-row>div:last-child{display:flex;flex-direction:column;gap:7px}.admin-row button{margin-left:0}}
 
 #accountButton:focus-visible{outline:2px solid var(--terracotta);outline-offset:3px}
+
+.cat-candles .category-art{background-image:url('assets/vela-aromatica-mandala.jpg');background-size:cover;background-position:center 28%}
