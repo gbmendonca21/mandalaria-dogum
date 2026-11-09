@@ -1,4 +1,6 @@
 import { database } from "./neon";
+import { env } from "cloudflare:workers";
+import { getDemoCatalog } from "./demo-catalog";
 
 type RecordRow = Record<string, unknown>;
 
@@ -33,6 +35,8 @@ export function mapProduct(row: RecordRow) {
     imageUrl: row.image_url ?? "",
     glbUrl: row.glb_url ?? "",
     usdzUrl: row.usdz_url ?? "",
+    demo: false,
+    imagePosition: null,
   };
 }
 
@@ -52,7 +56,11 @@ export async function getCatalog(includeDrafts = false) {
      ${includeDrafts ? "" : "WHERE p.status = 'active' AND (c.active = true OR c.id IS NULL)"}
      ORDER BY p.featured DESC, p.created_at DESC`,
   );
+  if (!includeDrafts && !products.length && env.DEMO_CATALOG === "true") {
+    return getDemoCatalog();
+  }
   return {
+    demo: false,
     categories: categories.map(mapCategory),
     products: products.map(mapProduct),
   };

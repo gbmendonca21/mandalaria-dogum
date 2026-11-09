@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { database, errorResponse, json } from "../../../lib/neon";
 import { value, validId } from "../../../lib/admin";
+import { isDemoProductId } from "../../../lib/demo-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +29,15 @@ export async function POST(request: Request) {
   try {
     if (request.headers.get("origin") !== new URL(request.url).origin) return json({ error: "Origem não permitida." }, 403);
     if (!request.headers.get("content-type")?.startsWith("application/json")) return json({ error: "Envie dados em JSON." }, 415);
+    const body = await request.json() as Record<string, unknown>;
+    if (Array.isArray(body.items) && body.items.some(item => item && isDemoProductId(item.productId))) {
+      return json({ error: "Produtos de demonstração não podem gerar pagamentos ou pedidos reais." }, 409);
+    }
     if (!env.MERCADOPAGO_ACCESS_TOKEN) return json({ error: "O pagamento ainda não está configurado." }, 503);
     const shippingCents = Number(env.SHIPPING_CENTS);
     if (!Number.isSafeInteger(shippingCents) || shippingCents < 0) {
       return json({ error: "A loja ainda não configurou o valor do frete." }, 503);
     }
-    const body = await request.json() as Record<string, unknown>;
     const customer = parseAddress(body.customer);
     const items = body.items;
     if (!customer) return json({ error: "Confira seus dados e o endereço de entrega." }, 400);

@@ -61,3 +61,29 @@
 #accountButton:focus-visible{outline:2px solid var(--terracotta);outline-offset:3px}
 
 .cat-candles .category-art{background-image:url('assets/vela-aromatica-mandala.jpg');background-size:cover;background-position:center 28%}
+
+/* Demonstração e sugestões ficam no mesmo fluxo rolável do carrinho. */
+.demo-product-photo{background-image:url('assets/catalogo-conceitual.png');background-size:300% 200%;background-repeat:no-repeat;background-color:#efe7d8}
+.cart-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.cart-scroll .cart-items{flex:none;overflow:visible}
+.cart-recommendations{margin:8px 28px 22px;padding-top:20px;border-top:1px solid var(--line)}
+.cart-recommendations h3{font-size:23px;letter-spacing:-.04em;margin-bottom:7px}
+.cart-recommendations>p{font-size:12px;line-height:1.5;color:var(--muted);margin-bottom:12px}
+.cart-recommendation{display:grid;grid-template-columns:56px minmax(0,1fr) auto;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.recommendation-photo{width:56px;height:64px;overflow:hidden;background:#efe7d8}
+.cart-recommendation small,.cart-recommendation strong,.cart-recommendation span:not(.cart-photo){display:block}
+.cart-recommendation small{color:var(--terracotta);font-size:10px;margin-bottom:4px}
+.cart-recommendation strong{font-size:12px;line-height:1.4;margin-bottom:4px}
+.cart-recommendation span:not(.cart-photo){font-size:12px}
+.cart-recommendation button{border:1px solid var(--line);background:var(--saffron-light);color:var(--ink);padding:10px 8px;font-size:11px;font-weight:700;min-height:40px}
+.cart-recommendation button:hover{border-color:var(--terracotta)}
+.cart-recommendation button:focus-visible{outline:2px solid var(--terracotta);outline-offset:3px}
+.cart-status{font-size:11px;line-height:1.4;color:var(--terracotta);margin:0;padding:0 28px}
+.cart-status:empty{display:none}
+.qty-control button:disabled{opacity:.35;cursor:default}
+.demo-summary-line{display:flex;justify-content:space-between;align-items:baseline;gap:18px;padding:12px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.6}
+.demo-summary-line strong{white-space:nowrap}
+.demo-summary-total{padding:20px 0}
+.demo-checkout-actions{display:grid;gap:8px}
+@media(max-width:380px){.cart-recommendations{margin-left:18px;margin-right:18px}.cart-recommendation{grid-template-columns:48px minmax(0,1fr) auto;gap:8px}.recommendation-photo{width:48px;height:58px}.cart-recommendation button{font-size:10px;padding:8px 6px}}
+@media(max-height:650px){.drawer-head{padding-top:15px;padding-bottom:12px}.cart-bottom{padding-top:12px;padding-bottom:15px}.cart-bottom p{margin:8px 0}.cart-bottom .button{min-height:44px}}

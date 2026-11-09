@@ -13,7 +13,9 @@ A prévia em <https://gbmendonca21.github.io/mandalaria-dogum/> é gerada por `n
 - Produtos começam como rascunho. Apenas os publicados aparecem na vitrine; produtos sem foto mostram um espaço neutro com o símbolo da marca.
 - Formulário de encomenda personalizada pelo WhatsApp.
 
-O catálogo ainda está vazio até o cadastro de produtos reais. O checkout depende das credenciais do Mercado Pago e do valor fixo de frete configurado no Worker. O projeto não inclui cálculo de frete por transportadora.
+Enquanto não há produtos reais publicados e `DEMO_CATALOG=true`, a vitrine mostra oito produtos fictícios em quatro categorias: Mandalas, Porta-chaves, Incensários e Velas aromáticas. Os exemplos vêm de `lib/demo-catalog.ts`, não são gravados no banco nem aparecem como produtos editáveis no painel. Ao publicar a primeira peça real, a vitrine usa somente o catálogo real. Para encerrar a demonstração mesmo com o catálogo vazio, defina `DEMO_CATALOG=false` no Worker. O checkout depende das credenciais do Mercado Pago e do valor fixo de frete configurado no Worker. O projeto não inclui cálculo de frete por transportadora.
+
+O carrinho sugere até três peças em “Você esqueceu de algo?”, priorizando categorias complementares e excluindo itens já escolhidos ou indisponíveis. Os produtos fictícios permitem testar busca, filtros, detalhes, quantidades, remoção, sugestões e resumo de finalização. A simulação não pede dados pessoais, não cria pedidos e não chama o Mercado Pago; a API de checkout também recusa identificadores `demo-`. O carrinho remove exemplos antigos quando o catálogo real passa a ser exibido.
 
 ## Banco e segurança
 
@@ -44,8 +46,8 @@ npm run dev:neon
 
 Abra `http://127.0.0.1:5173`. O script usa a branch `development` do Neon sem gravar a URL do banco em arquivo. `.dev.vars` guarda segredos locais de sessão e armazenamento e não deve ser versionado.
 
-Antes de publicar, execute `npm run typecheck` e `npm run build`. O workflow do Cloudflare também executa essas verificações; um build bem-sucedido com o deploy pulado não atualiza o Worker em produção.
+Antes de publicar, execute `npm run check:demo`, `npm run typecheck` e `npm run build`. A verificação do catálogo de demonstração cobre filtros, carrinho, recomendações, simulação e bloqueio de pagamentos fictícios. O workflow do Cloudflare também executa essas verificações; um build bem-sucedido com o deploy pulado não atualiza o Worker em produção.
 
 A compilação gera `dist/`, que não é versionada. O arquivo `generate_photo_ar.py` permanece como referência para criar uma prévia 3D a partir de uma foto; modelos fiéis devem ser feitos a partir das peças reais.
 
-Os seis produtos conceituais da primeira vitrine permanecem no histórico do Git, em `febbe95:dist/app.js`. Somente a Mandala Aurora tinha uma prévia AR. O modelo `public/assets/mandala-preview.glb` e a foto `public/assets/mandala-recorte.png` continuam disponíveis; o GLB é uma imagem plana de 45 cm para testar a composição na parede. A vitrine atual oferece 3D/AR quando um produto publicado tem um arquivo GLB cadastrado, com USDZ opcional para iPhone. Os exemplos não foram inseridos como produtos reais no Neon.
+Os seis produtos conceituais da primeira vitrine permanecem no histórico do Git, em `febbe95:dist/app.js`. Somente a Mandala Aurora tinha uma prévia AR. O modelo `public/assets/mandala-preview.glb` e a foto `public/assets/mandala-recorte.png` continuam disponíveis; o GLB é uma imagem plana de 45 cm para testar a composição na parede. A vitrine atual oferece 3D/AR quando um produto publicado tem um arquivo GLB cadastrado, com USDZ opcional para iPhone. A Mandala Aurora do catálogo de demonstração reutiliza essa prévia. Os exemplos não foram inseridos como produtos reais no Neon.

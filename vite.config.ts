@@ -65,6 +65,7 @@ export default defineConfig(async ({ command }) => {
         config: {
           ...localBindingConfig,
           vars: {
+            DEMO_CATALOG: process.env.DEMO_CATALOG ?? "true",
             NEON_AUTH_BASE_URL: process.env.NEON_AUTH_BASE_URL ?? "https://ep-shiny-waterfall-b7innoi8.neonauth.c-13.us-east-1.aws.neon.tech/mandalaria/auth",
             AWS_ENDPOINT_URL_S3: process.env.AWS_ENDPOINT_URL_S3 ?? mediaStorageEndpoint,
             AWS_REGION: process.env.AWS_REGION ?? "us-east-1",

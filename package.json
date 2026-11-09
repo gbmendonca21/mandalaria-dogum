@@ -15,7 +15,8 @@
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
-    "dev:neon": "node scripts/dev-neon.mjs"
+    "dev:neon": "node scripts/dev-neon.mjs",
+    "check:demo": "node scripts/checks/demo-cart.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1163.0",
