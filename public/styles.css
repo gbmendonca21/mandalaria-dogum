@@ -58,9 +58,4 @@
 .account-link{margin-top:12px}
 @media(max-width:500px){.product-photo.product-placeholder{padding:17%}.admin-row{align-items:flex-start}.admin-row>div:last-child{display:flex;flex-direction:column;gap:7px}.admin-row button{margin-left:0}}
 
-/* Acesso administrativo visível no cabeçalho, inclusive em telas pequenas. */
-.admin-access-button{min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 11px;border:1px solid var(--line);border-radius:3px;background:transparent;color:var(--ink);font-size:12px;font-weight:700;white-space:nowrap}
-.admin-access-button:hover{border-color:var(--terracotta);color:var(--terracotta);background:var(--cream)}
-.admin-access-button:focus-visible{outline:2px solid var(--terracotta);outline-offset:3px}
-@media(max-width:760px){.admin-access-button{font-size:11px;padding:7px;gap:5px}.admin-access-button svg{width:18px;height:18px}}
-@media(max-width:420px){.site-header{flex-wrap:wrap;height:auto;min-height:76px;padding-top:12px;padding-bottom:12px;row-gap:10px}.site-header .header-actions{margin-left:auto;gap:4px}.admin-access-button{font-size:11px}}
+#accountButton:focus-visible{outline:2px solid var(--terracotta);outline-offset:3px}
