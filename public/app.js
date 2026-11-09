@@ -64,7 +64,9 @@ async function loadCatalog() {
 async function loadMe() {
   try { me = await api('/api/me'); }
   catch { me = { authenticated: false, admin: false }; }
-  $('#accountButton').setAttribute('aria-label', me.authenticated ? `Minha conta: ${me.email}` : 'Entrar na minha conta');
+  $('#accountButton').setAttribute('aria-label', me.admin ? 'Abrir painel do administrador' : 'Entrar na área do administrador');
+  $('#adminAccessLabel').textContent = me.admin ? 'Painel da loja' : 'Área admin';
+  $('#adminDemo').textContent = me.admin ? 'Painel da loja' : 'Login do administrador';
 }
 function renderCategories() {
   $('#categoryTabs').innerHTML = ['Todos', ...categories].map(category => {
@@ -134,14 +136,21 @@ function updateSearch() { searchTerm = $('#searchInput').value.trim(); $('#catal
 function makeOrderMessage(form) { const data = Object.fromEntries(new FormData(form).entries()); return `Olá! Gostaria de solicitar uma encomenda personalizada na Mandalaria D'ogum.\n\n*Nome:* ${data.name.trim()}\n*Tipo de peça:* ${data.type}\n*Cores desejadas:* ${data.colors.trim()}\n*Tamanho:* ${data.size}\n*Prazo desejado:* ${data.deadline || 'A combinar'}\n*Orçamento:* ${data.budget}\n*Detalhes:* ${data.details.trim() || 'A conversar'}\n\nPodemos conversar sobre o projeto?`; }
 function renderAccount() {
   const host = $('#accountContent');
+  $('#accountTitle').textContent = me.authenticated ? 'Área do administrador' : accountMode === 'signup' ? 'Primeiro acesso' : 'Login do administrador';
   if (!me.authenticated) {
-    host.innerHTML = `<p>Acesse sua conta para acompanhar pedidos ou administrar a loja.</p><form id="accountAuthForm" class="admin-form">${accountMode === 'signup' ? '<label>Nome<input name="name" required autocomplete="name" maxlength="100"></label>' : ''}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Senha<input name="password" type="password" required minlength="8" autocomplete="${accountMode === 'signup' ? 'new-password' : 'current-password'}"></label><button class="button button-dark full-button" type="submit">${accountMode === 'signup' ? 'Criar conta' : 'Entrar'}</button><button class="text-button" type="button" id="toggleAuthMode">${accountMode === 'signup' ? 'Já tenho uma conta' : 'Criar uma conta'}</button>${accountMode === 'signin' ? '<button class="text-button" type="button" id="forgotPassword">Esqueci minha senha</button>' : ''}<p id="authMessage" role="status"></p></form>`;
+    host.innerHTML = `<p>Entre com o e-mail autorizado para adicionar produtos, enviar fotos e gerenciar a loja.</p><form id="accountAuthForm" class="admin-form">${accountMode === 'signup' ? '<label>Nome<input name="name" required autocomplete="name" maxlength="100"></label>' : ''}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Senha<input name="password" type="password" required minlength="8" autocomplete="${accountMode === 'signup' ? 'new-password' : 'current-password'}"></label><button class="button button-dark full-button" type="submit">${accountMode === 'signup' ? 'Criar conta' : 'Entrar'}</button><button class="text-button" type="button" id="toggleAuthMode">${accountMode === 'signup' ? 'Já tenho uma conta' : 'Primeiro acesso? Criar conta'}</button>${accountMode === 'signin' ? '<button class="text-button" type="button" id="forgotPassword">Esqueci minha senha</button>' : ''}<p id="authMessage" role="status"></p></form>`;
     return;
   }
   const verification = !me.emailVerified ? `<form id="verifyEmailForm" class="admin-form"><p>Confirme seu e-mail para liberar o painel administrativo.</p><label>Código de verificação<input name="otp" inputmode="numeric" autocomplete="one-time-code" required></label><button class="button button-dark full-button" type="submit">Verificar e-mail</button><button class="text-button" type="button" id="sendVerificationCode">Enviar código novamente</button><p id="authMessage" role="status"></p></form>` : '';
-  host.innerHTML = `<p>Conectado como <strong>${escapeHtml(me.displayName || me.email)}</strong><br><small>${escapeHtml(me.email)}</small></p>${verification}${me.admin ? '<button class="button button-terracotta full-button" id="openAdminFromAccount">Abrir painel da loja</button>' : me.emailVerified ? '<p>Seu acesso de cliente está ativo.</p>' : ''}<button class="button button-outline full-button account-link" id="signOutButton">Sair da conta</button>`;
+  host.innerHTML = `<p>Conectado como <strong>${escapeHtml(me.displayName || me.email)}</strong><br><small>${escapeHtml(me.email)}</small></p>${verification}${me.admin ? '<button class="button button-terracotta full-button" id="openAdminFromAccount">Abrir painel da loja</button>' : me.emailVerified ? '<p role="status">Este e-mail não tem permissão para administrar a loja. Saia e entre com uma conta autorizada.</p>' : ''}<button class="button button-outline full-button account-link" id="signOutButton">Sair da conta</button>`;
 }
 async function openAdmin() {
+  if (window.MANDALARIA_CONFIG.staticMode) {
+    location.assign('https://mandalaria-dogum.mandalaria-dogum-shop.workers.dev/?admin=1');
+    return;
+  }
+  await loadMe();
+  if (!me.authenticated) accountMode = 'signin';
   if (!me.admin) { renderAccount(); openDialog('#accountDialog'); return; }
   try {
     const data = await api('/api/admin/catalog');
@@ -229,7 +238,11 @@ document.addEventListener('click', async event => {
     return;
   }
   if (target.id === 'signOutButton') {
-    try { await window.MANDALARIA_AUTH.signOut(); me = { authenticated: false, admin: false }; renderAccount(); }
+    try {
+      const result = await window.MANDALARIA_AUTH.signOut();
+      if (result.error) throw new Error(result.error.message || 'Não foi possível sair.');
+      await loadMe(); accountMode = 'signin'; renderAccount();
+    }
     catch (error) { showInfo('Não foi possível sair', error.message); }
     return;
   }
@@ -270,7 +283,9 @@ document.addEventListener('submit', async event => {
         const sent = await window.MANDALARIA_AUTH.emailOtp.sendVerificationOtp({ email: data.email, type: 'email-verification' });
         if (sent.error) throw new Error(sent.error.message || 'Conta criada, mas não foi possível enviar o código.');
       }
-      await loadMe(); renderAccount();
+      await loadMe();
+      if (me.admin) await openAdmin();
+      else renderAccount();
     } catch (error) {
       const message = $('#authMessage'); if (message) message.textContent = error.message;
       button.disabled = false;
@@ -283,7 +298,9 @@ document.addEventListener('submit', async event => {
     try {
       const result = await window.MANDALARIA_AUTH.emailOtp.verifyEmail({ email: me.email, otp });
       if (result.error) throw new Error(result.error.message || 'Código inválido.');
-      await loadMe(); renderAccount();
+      await loadMe();
+      if (me.admin) await openAdmin();
+      else renderAccount();
     } catch (error) { $('#authMessage').textContent = error.message; }
     return;
   }
@@ -297,7 +314,9 @@ $('#searchTrigger').addEventListener('click', () => { openDialog('#searchDialog'
 $('#searchInput').addEventListener('keydown', event => { if (event.key === 'Enter') updateSearch(); });
 $('#searchSubmit').addEventListener('click', updateSearch);
 $('#catalogSearch').addEventListener('input', event => { searchTerm = event.target.value.trim(); renderProducts(); });
-$('#accountButton').addEventListener('click', async () => { await loadMe(); renderAccount(); openDialog('#accountDialog'); });
+$('#accountButton').addEventListener('click', async () => { await loadMe();
+      if (me.admin) await openAdmin();
+      else renderAccount(); openDialog('#accountDialog'); });
 $('#filterToggle').addEventListener('click', () => { const panel = $('#filterPanel'); panel.hidden = !panel.hidden; $('#filterToggle').setAttribute('aria-expanded', String(!panel.hidden)); });
 $('#maxPrice').addEventListener('input', renderProducts); $('#stockOnly').addEventListener('change', renderProducts); $('#sortProducts').addEventListener('change', renderProducts);
 $('#clearFilters').addEventListener('click', () => { $('#maxPrice').value = $('#maxPrice').max; $('#stockOnly').checked = false; $('#sortProducts').value = 'featured'; renderProducts(); });
@@ -331,4 +350,7 @@ if (paymentResult) {
   };
   if (messages[paymentResult]) showInfo(...messages[paymentResult]);
 }
-renderProducts(); renderCart(); Promise.all([loadCatalog(), loadMe()]);
+renderProducts(); renderCart();
+Promise.all([loadCatalog(), loadMe()]).then(() => {
+  if (new URLSearchParams(location.search).get('admin') === '1') return openAdmin();
+});

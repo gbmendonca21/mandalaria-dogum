@@ -58,7 +58,7 @@ await writeFile(appPath, app.replace(apiFunction, staticApiFunction));
 const stylesPath = path.join(outputDirectory, "styles.css");
 await writeFile(
   stylesPath,
-  `${await readFile(stylesPath, "utf8")}\n.github-pages #accountButton,.github-pages #adminDemo{display:none!important}\n.pages-preview-note{background:#402f23;color:#fffdf8;text-align:center;padding:10px 18px;font-size:12px;line-height:1.5}.pages-preview-note a{color:#f3d487;text-decoration:underline;text-underline-offset:3px;margin-left:4px}@media(max-width:600px){.pages-preview-note a{display:block;margin-left:0}}\n`,
+  `${await readFile(stylesPath, "utf8")}\n.pages-preview-note{background:#402f23;color:#fffdf8;text-align:center;padding:10px 18px;font-size:12px;line-height:1.5}.pages-preview-note a{color:#f3d487;text-decoration:underline;text-underline-offset:3px;margin-left:4px}@media(max-width:600px){.pages-preview-note a{display:block;margin-left:0}}\n`,
 );
 await writeFile(path.join(outputDirectory, ".nojekyll"), "");
 
