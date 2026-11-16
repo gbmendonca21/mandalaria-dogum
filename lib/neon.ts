@@ -14,6 +14,6 @@ export function json(data: unknown, status = 200) {
 }
 
 export function errorResponse(error: unknown) {
-  console.error("Neon/API error", error);
+  console.error("Store/API failure", { type: error instanceof Error ? error.name : "UnknownError" });
   return json({ error: "Não foi possível acessar os dados da loja agora." }, 503);
 }

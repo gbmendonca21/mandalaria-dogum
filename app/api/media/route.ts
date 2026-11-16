@@ -21,6 +21,16 @@ function fileType(file: File) {
   return null;
 }
 
+export function matchesSignature(bytes: Uint8Array, extension: string) {
+  const ascii = (offset: number, value: string) => value.split("").every((char,index) => bytes[offset+index] === char.charCodeAt(0));
+  if (extension === "jpg") return bytes[0]===255 && bytes[1]===216 && bytes[2]===255;
+  if (extension === "png") return [137,80,78,71,13,10,26,10].every((byte,index)=>bytes[index]===byte);
+  if (extension === "webp") return ascii(0,"RIFF") && ascii(8,"WEBP");
+  if (extension === "glb") return ascii(0,"glTF") && bytes[4]===2;
+  if (extension === "usdz") return ascii(0,"PK") && bytes[2]===3 && bytes[3]===4;
+  return false;
+}
+
 export async function POST(request: Request) {
   try {
     if (request.headers.get("origin") !== new URL(request.url).origin) {
@@ -36,12 +46,14 @@ export async function POST(request: Request) {
     const type = fileType(file);
     if (!type) return json({ error: "Envie uma imagem JPG, PNG ou WebP, ou um modelo GLB/USDZ." }, 415);
     if (file.size > type.limit) return json({ error: `O arquivo excede o limite de ${Math.floor(type.limit / 1024 / 1024)} MB.` }, 413);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (!matchesSignature(bytes,type.extension)) return json({error:"O conteúdo do arquivo não corresponde ao formato informado."},415);
     const key = `products/${crypto.randomUUID()}.${type.extension}`;
-    const saved = await storage.put(key, new Uint8Array(await file.arrayBuffer()), type.contentType);
+    const saved = await storage.put(key, bytes, type.contentType);
     if (!saved.ok) throw new Error(`Falha no armazenamento: HTTP ${saved.status}`);
     return json({ url: `/api/media/${key}`, key }, 201);
   } catch (error) {
-    console.error("Media upload failed", error);
+    console.error("Media upload failed", {type:error instanceof Error ? error.name : "UnknownError"});
     return json({ error: "Não foi possível salvar o arquivo." }, 500);
   }
 }

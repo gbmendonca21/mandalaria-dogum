@@ -1,3 +1,4 @@
+import { sellerIsReady, storeSettings } from "../../../lib/store";
 import { env } from "cloudflare:workers";
 import { database, errorResponse, json } from "../../../lib/neon";
 import { value, validId } from "../../../lib/admin";
@@ -29,10 +30,14 @@ export async function POST(request: Request) {
   try {
     if (request.headers.get("origin") !== new URL(request.url).origin) return json({ error: "Origem não permitida." }, 403);
     if (!request.headers.get("content-type")?.startsWith("application/json")) return json({ error: "Envie dados em JSON." }, 415);
-    const body = await request.json() as Record<string, unknown>;
+    const parsed: unknown = await request.json();
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return json({error:"Dados de pedido inválidos."},400);
+    const body = parsed as Record<string, unknown>;
     if (Array.isArray(body.items) && body.items.some(item => item && isDemoProductId(item.productId))) {
       return json({ error: "Produtos de demonstração não podem gerar pagamentos ou pedidos reais." }, 409);
     }
+    if (!sellerIsReady()) return json({ error: "Compras reais desativadas: os dados legais e os canais oficiais da loja ainda estão pendentes." }, 503);
+    if (body.termsAccepted !== true || body.policyVersion !== storeSettings.policyVersion) return json({ error: "Leia e aceite os termos da compra antes de continuar." }, 400);
     if (!env.MERCADOPAGO_ACCESS_TOKEN) return json({ error: "O pagamento ainda não está configurado." }, 503);
     const shippingCents = Number(env.SHIPPING_CENTS);
     if (!Number.isSafeInteger(shippingCents) || shippingCents < 0) {
@@ -138,7 +143,7 @@ export async function POST(request: Request) {
     const preference = await preferenceResponse.json() as { id?: string; init_point?: string; message?: string };
     if (!preferenceResponse.ok || !preference.id || !preference.init_point) {
       await sql.query("UPDATE orders SET status='cancelled', payment_status='rejected', updated_at=now() WHERE id=$1", [orderId]);
-      console.error("Mercado Pago preference failed", preferenceResponse.status, preference.message || "unknown error");
+      console.error("Mercado Pago preference failed", preferenceResponse.status);
       return json({ error: "Não foi possível iniciar o pagamento. Tente novamente." }, 502);
     }
     await sql.query("UPDATE orders SET payment_reference=$2, updated_at=now() WHERE id=$1", [orderId, preference.id]);

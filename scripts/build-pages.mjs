@@ -32,6 +32,8 @@ await cp(path.join(publicDirectory, "app.js"), path.join(outputDirectory, "app.j
 await cp(path.join(publicDirectory, "auth-client.js"), path.join(outputDirectory, "auth-client.js"));
 await cp(path.join(publicDirectory, "styles.css"), path.join(outputDirectory, "styles.css"));
 
+await cp(path.join(publicDirectory, "legal"), path.join(outputDirectory, "legal"), { recursive: true });
+await cp(path.join(publicDirectory, "_headers"), path.join(outputDirectory, "_headers"));
 const html = await readFile(path.join(projectRoot, "legacy-index.html"), "utf8");
 if (!html.includes('<meta name="robots" content="noindex,nofollow">')) {
   throw new Error("Expected the source page to contain its private-preview robots tag.");

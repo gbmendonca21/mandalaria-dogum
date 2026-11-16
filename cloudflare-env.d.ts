@@ -1,6 +1,8 @@
 declare namespace Cloudflare {
   interface Env {
     DB?: D1Database;
+    AUTH_RATE_LIMITER?: { limit(input: { key: string }): Promise<{ success: boolean }> };
+    WRITE_RATE_LIMITER?: { limit(input: { key: string }): Promise<{ success: boolean }> };
     DATABASE_URL: string;
     DEMO_CATALOG?: string;
     AWS_ACCESS_KEY_ID?: string;

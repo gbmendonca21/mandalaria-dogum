@@ -78,9 +78,7 @@ CREATE TABLE IF NOT EXISTS admin_memberships (
   CONSTRAINT admin_memberships_role_valid CHECK (role IN ('owner', 'editor')),
   CONSTRAINT admin_memberships_email_lowercase CHECK (email = lower(email))
 );
-INSERT INTO admin_memberships (email, role)
-VALUES ('gb.mendonca21@gmail.com', 'owner')
-ON CONFLICT (email) DO NOTHING;
+-- Admins são concedidos explicitamente no ambiente correto; sem contas pessoais pré-autorizadas.
 
 CREATE TABLE IF NOT EXISTS orders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

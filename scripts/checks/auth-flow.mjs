@@ -5,7 +5,7 @@ import ts from 'typescript';
 const source = fs.readFileSync('public/app.js','utf8').replace(/renderProducts\(\); renderCart\(\);\nPromise\.all\(\[loadCatalog\(\), loadMe\(\)\]\)[\s\S]*$/, '');
 const elements=new Map(), handlers=new Map(), calls=[];
 function element(selector){
- if(!elements.has(selector))elements.set(selector,{textContent:'',innerHTML:'',style:{},open:false,value:'',disabled:false,listeners:new Map(),classList:{toggle(){},add(){},remove(){}},setAttribute(){},addEventListener(name,fn){this.listeners.set(name,fn)},showModal(){this.open=true},close(){this.open=false},reportValidity(){return true}});
+ if(!elements.has(selector))elements.set(selector,{textContent:'',innerHTML:'',style:{},open:false,value:'',disabled:false,listeners:new Map(),classList:{toggle(){},add(){},remove(){},contains(){return false}},setAttribute(){},addEventListener(name,fn){this.listeners.set(name,fn)},showModal(){this.open=true},close(){this.open=false},reportValidity(){return true}});
  return elements.get(selector);
 }
 let session={authenticated:false,admin:false};

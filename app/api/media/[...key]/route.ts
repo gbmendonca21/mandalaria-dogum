@@ -17,7 +17,7 @@ export async function GET(_request: Request, context: RouteContext) {
   try {
     object = await storage.get(objectKey);
   } catch (error) {
-    console.error("Media download failed", error);
+    console.error("Media download failed", {type:error instanceof Error ? error.name : "UnknownError"});
     return json({ error: "Não foi possível carregar o arquivo." }, 502);
   }
   if (object.status === 404) return json({ error: "Arquivo não encontrado." }, 404);

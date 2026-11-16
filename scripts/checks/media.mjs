@@ -39,7 +39,7 @@ const json = (data,status=200) => Response.json(data,{status});
 let queried=false, paymentCalled=false;
 const checkout = vm.createContext({
   env:{MERCADOPAGO_ACCESS_TOKEN:'fake-test-token',SHIPPING_CENTS:'0'},URL,Response,console,json,
-  errorResponse:error=>{throw error},isDemoProductId:()=>false,
+  errorResponse:error=>{throw error},isDemoProductId:()=>false,sellerIsReady:()=>true,storeSettings:{policyVersion:"2026-11-15"},
   database:()=>({query:async query=>{assert.match(query,/price_cents > 0/);queried=true;return []}}),
   fetch:async()=>{paymentCalled=true;throw new Error('Produto sem preço não pode gerar pagamento')},
 });
@@ -47,7 +47,7 @@ vm.runInContext(compile('lib/admin.ts'),checkout);
 vm.runInContext(compile('app/api/checkout/route.ts'),checkout);
 const denied=await checkout.POST(new Request('https://store.example/api/checkout',{
   method:'POST',headers:{origin:'https://store.example','content-type':'application/json'},
-  body:JSON.stringify({customer:{name:'Teste local',email:'test@example.invalid',phone:'11999999999',zipCode:'01001000',street:'Rua de teste',number:'1',neighborhood:'Centro',city:'São Paulo',state:'SP'},items:[{productId:'bd3a1a0e-3863-4e77-83fa-e216d6f6b101',quantity:1}]})
+  body:JSON.stringify({termsAccepted:true,policyVersion:"2026-11-15",customer:{name:'Teste local',email:'test@example.invalid',phone:'11999999999',zipCode:'01001000',street:'Rua de teste',number:'1',neighborhood:'Centro',city:'São Paulo',state:'SP'},items:[{productId:'bd3a1a0e-3863-4e77-83fa-e216d6f6b101',quantity:1}]})
 }));
 assert.equal(denied.status,409);assert.ok(queried);assert.equal(paymentCalled,false);
 const products=vm.createContext({json,console});

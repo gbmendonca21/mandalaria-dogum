@@ -21,7 +21,7 @@ O carrinho sugere até três peças em “Você esqueceu de algo?”, priorizand
 
 O projeto Neon `mandalaria-dogum` usa o banco `mandalaria` nas branches `main` e `development`. As migrações [`neon/001_init.sql`](neon/001_init.sql) e [`neon/002_site_owner.sql`](neon/002_site_owner.sql) foram aplicadas em ambas. Os identificadores estão em [`neon/README.md`](neon/README.md). Neon Auth foi habilitado nas duas branches.
 
-`DATABASE_URL`, `NEON_AUTH_COOKIE_SECRET` e as credenciais S3 do Neon são segredos de servidor. Nunca os coloque em `public/`, no Git ou no navegador. O painel verifica a sessão Neon Auth, a confirmação do e-mail e a tabela `admin_memberships`; as contas da dona da loja já estão cadastradas como `owner`.
+`DATABASE_URL`, `NEON_AUTH_COOKIE_SECRET` e as credenciais S3 do Neon são segredos de servidor. Nunca os coloque em `public/`, no Git ou no navegador. O painel verifica a sessão Neon Auth, a confirmação do e-mail e a tabela `admin_memberships`; a conta principal autorizada é a única associação administrativa em produção. Os scripts de instalação não concedem acesso automaticamente.
 
 ## Publicação na Cloudflare
 
@@ -65,3 +65,13 @@ A verificação `npm run check:auth` recompila e executa o cliente real de auten
 Um produto publicado com preço 0 funciona como apresentação da foto: a vitrine exibe somente a imagem e permite ampliá-la, sem valor nem botão de compra. O checkout rejeita produtos sem preço. No painel, edite o cadastro da peça, complete nome, descrição, preço e estoque; ao salvar com preço maior que 0, ela passa a usar a apresentação normal do produto. As seis fotografias reais iniciais de Mandalas foram enviadas ao bucket do Neon e mantêm o conteúdo dos arquivos originais.
 
 O armazenamento de mídia usa `aws4fetch` com assinatura S3, `fetch` e Web Crypto nativos do Worker. `npm run check:media` verifica upload/leitura, integridade dos bytes e bloqueio de compra de produtos sem preço.
+
+## Privacidade e preparação comercial
+
+A revisão dos 17 pontos e suas pendências está em [docs/security-review-2026-11-15.md](docs/security-review-2026-11-15.md). Os dados legais e canais oficiais foram deixados pendentes por solicitação da responsável. `config/store.json` é configuração pública: não insira segredos nesse arquivo. Enquanto `businessVerified` e `salesEnabled` não forem verdadeiros e os campos obrigatórios não estiverem completos, o servidor recusa compras reais; o carrinho de demonstração segue disponível. Configurar pagamentos e frete também é obrigatório.
+
+`npm run build` e `npm run build:pages` geram as políticas e a configuração pública a partir desse arquivo. Antes de liberar vendas, complete a identificação, valide os textos, direitos das imagens, contratos de dados, retenção e atendimento, e teste o pagamento. CNPJ é o campo do cadastro atual; ajuste o modelo com orientação adequada se o fornecedor tiver outro enquadramento legal. Não basta mudar as duas flags para afirmar conformidade.
+
+Verificações: `npm run typecheck`, `npm run check:auth`, `npm run check:demo`, `npm run check:media`, `npm run check:security`, `npm audit --audit-level=moderate`, `npm run build`, `npm run build:pages` e `npm run check:secrets`. A varredura ampliada `node scripts/checks/public-secrets.mjs --history` também examina os blobs de todos os refs locais, sem imprimir valores encontrados.
+
+O limite contra abuso é aproximado por localidade Cloudflare, de 30 operações de autenticação e 60 demais gravações por minuto por chave derivada do IP. Não substitui monitoramento ou proteção global contra ataques. As fotos de ambiente permanecem locais; arquivos da vitrine são públicos por design, servidos por uma rota limitada a `products/`, e as credenciais do bucket permanecem no Worker. Use arquivos do bucket para modelos 3D: a CSP bloqueia conexões arbitrárias externas e modelos comprimidos podem precisar de decodificadores locais adicionais.

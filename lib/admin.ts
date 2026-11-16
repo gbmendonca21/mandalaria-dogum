@@ -29,7 +29,9 @@ export function requireSameOrigin(request: Request) {
 export async function readBody(request: Request) {
   const body = await request.text();
   if (body.length > 16_000) throw new Error("Dados muito extensos");
-  return JSON.parse(body) as Record<string, unknown>;
+  const parsed: unknown = JSON.parse(body);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Dados inválidos");
+  return parsed as Record<string, unknown>;
 }
 
 export function value(input: unknown, max = 200) {

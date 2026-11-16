@@ -68,7 +68,8 @@ let currentCatalog = catalog;
 function element(selector) {
   if (!elements.has(selector)) elements.set(selector, {
     textContent: '', innerHTML: '', style: {}, value: '', max: '300', checked: false, open: false, hidden: false, listeners: new Map(),
-    classList: { add() {}, remove() {}, toggle() {} }, setAttribute() {}, focus() {}, scrollIntoView() {},
+    classList: { values:new Set(), add(value) {this.values.add(value)}, remove(value) {this.values.delete(value)}, toggle() {}, contains(value) {return this.values.has(value)} }, setAttribute() {}, focus() {app.document.activeElement=this}, scrollIntoView() {},
+    querySelectorAll() {return [element('#cartDrawer [data-close]'),element('#checkoutButton')]}, closest() {return null},
     addEventListener(name, callback) { this.listeners.set(name, callback); },
     showModal() { this.open = true; }, close() { this.open = false; },
   });
@@ -77,7 +78,7 @@ function element(selector) {
 const app = vm.createContext({
   window: { MANDALARIA_CONFIG: { whatsapp: '' } },
   document: { body: { style: {} }, querySelector: element,
-    querySelectorAll: selector => selector === 'dialog[open]' ? [...elements.values()].filter(item => item.open) : [],
+    querySelectorAll: selector => selector === 'dialog[open]' ? [...elements.values()].filter(item => item.open) : selector.startsWith('main,') ? [element('main'),element('footer')] : [],
     addEventListener(name, callback) { handlers.set(name, [...handlers.get(name) || [], callback]); },
   },
   localStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) },
@@ -92,6 +93,15 @@ const click = async (id = '', dataset = {}) => {
 };
 vm.runInContext(appSource, app);
 await run('loadCatalog()');
+run('openCart()');
+assert.equal(app.document.activeElement,element('#cartDrawer [data-close]'));
+assert.equal(element('main').inert,true);
+app.document.activeElement=element('#checkoutButton');
+for(const handler of handlers.get('keydown')) handler({key:'Tab',shiftKey:false,target:{matches:()=>false},preventDefault(){}});
+assert.equal(app.document.activeElement,element('#cartDrawer [data-close]'));
+for(const handler of handlers.get('keydown')) handler({key:'Escape',target:{matches:()=>false},preventDefault(){}});
+assert.equal(element('main').inert,false);
+assert.equal(element('#cartDrawer').inert,true);
 assert.equal(element('#catalogNotice').hidden, false);
 assert.match(element('#productGrid').innerHTML, /Demonstração/);
 for (const category of catalog.categories) {
@@ -144,7 +154,8 @@ await run('loadCatalog()');
 assert.equal(run('Object.keys(cart).length'), 0);
 assert.equal(element('#catalogNotice').hidden, true);
 run("addToCart('real-one'); openCheckout()");
-assert.equal(element('#checkoutDialog').open, true);
+assert.equal(element('#checkoutDialog').open, false);
+assert.equal(element('#infoTitle').textContent, 'Loja em preparação');
 run('closeDialogs()');
 currentCatalog = { demo: false, categories: [{ name: 'Mandalas' }], products: [{ ...catalog.products[0], id: 'photo-only-real', priceCents: 0, photoOnly: true, stockQuantity: 0, demo: false, glbUrl: '' }] };
 await run('loadCatalog()');
