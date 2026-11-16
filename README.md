@@ -13,7 +13,7 @@ A prévia em <https://gbmendonca21.github.io/mandalaria-dogum/> é gerada por `n
 - Produtos começam como rascunho. Apenas os publicados aparecem na vitrine; produtos sem foto mostram um espaço neutro com o símbolo da marca.
 - Formulário de encomenda personalizada pelo WhatsApp.
 
-Enquanto não há produtos reais publicados e `DEMO_CATALOG=true`, a vitrine mostra oito produtos fictícios em quatro categorias: Mandalas, Porta-chaves, Incensários e Velas aromáticas. Os exemplos vêm de `lib/demo-catalog.ts`, não são gravados no banco nem aparecem como produtos editáveis no painel. Ao publicar a primeira peça real, a vitrine usa somente o catálogo real. Para encerrar a demonstração mesmo com o catálogo vazio, defina `DEMO_CATALOG=false` no Worker. O checkout depende das credenciais do Mercado Pago e do valor fixo de frete configurado no Worker. O projeto não inclui cálculo de frete por transportadora.
+Enquanto não há produtos reais publicados e `DEMO_CATALOG=true`, a vitrine mostra oito produtos fictícios em quatro categorias: Mandalas, Porta-chaves, Incensários e Velas aromáticas. Os exemplos vêm de `lib/demo-catalog.ts`, não são gravados no banco nem aparecem como produtos editáveis no painel. Ao publicar a primeira peça real com preço definido, a vitrine usa somente o catálogo real. Fotos reais ainda sem preço substituem os exemplos da mesma categoria, mantendo os exemplos das demais categorias durante a preparação. Para encerrar a demonstração mesmo com o catálogo vazio, defina `DEMO_CATALOG=false` no Worker. O checkout depende das credenciais do Mercado Pago e do valor fixo de frete configurado no Worker. O projeto não inclui cálculo de frete por transportadora.
 
 O carrinho sugere até três peças em “Você esqueceu de algo?”, priorizando categorias complementares e excluindo itens já escolhidos ou indisponíveis. Os produtos fictícios permitem testar busca, filtros, detalhes, quantidades, remoção, sugestões e resumo de finalização. A simulação não pede dados pessoais, não cria pedidos e não chama o Mercado Pago; a API de checkout também recusa identificadores `demo-`. O carrinho remove exemplos antigos quando o catálogo real passa a ser exibido.
 
@@ -46,7 +46,7 @@ npm run dev:neon
 
 Abra `http://127.0.0.1:5173`. O script usa a branch `development` do Neon sem gravar a URL do banco em arquivo. `.dev.vars` guarda segredos locais de sessão e armazenamento e não deve ser versionado.
 
-Antes de publicar, execute `npm run check:demo`, `npm run check:auth`, `npm run typecheck` e `npm run build`. A verificação do catálogo de demonstração cobre filtros, carrinho, recomendações, simulação e bloqueio de pagamentos fictícios. O workflow do Cloudflare também executa essas verificações; um build bem-sucedido com o deploy pulado não atualiza o Worker em produção.
+Antes de publicar, execute `npm run check:demo`, `npm run check:auth`, `npm run check:media`, `npm run typecheck` e `npm run build`. A verificação do catálogo de demonstração cobre filtros, carrinho, recomendações, simulação e bloqueio de pagamentos fictícios. O workflow do Cloudflare também executa essas verificações; um build bem-sucedido com o deploy pulado não atualiza o Worker em produção.
 
 A compilação gera `dist/`, que não é versionada. O arquivo `generate_photo_ar.py` permanece como referência para criar uma prévia 3D a partir de uma foto; modelos fiéis devem ser feitos a partir das peças reais.
 
@@ -59,3 +59,9 @@ O domínio de produção `https://mandalaria-dogum.vertice-digital.workers.dev` 
 O Google usa atualmente o aplicativo compartilhado do Neon, adequado à demonstração. Antes de atender clientes reais, configure Client ID e Client Secret próprios no Neon, seguindo https://neon.com/docs/auth/guides/setup-oauth. Não envie esses segredos ao navegador. Se o domínio mudar, atualize também a lista de domínios confiáveis do Neon Auth.
 
 A verificação `npm run check:auth` recompila e executa o cliente real de autenticação em um contexto de navegador sem o global `process`, além dos testes de formulário e autorização. O build substitui `process.env.NODE_ENV` por uma constante para que bibliotecas não dependam do Node no navegador.
+
+## Produtos com apenas a fotografia
+
+Um produto publicado com preço 0 funciona como apresentação da foto: a vitrine exibe somente a imagem e permite ampliá-la, sem valor nem botão de compra. O checkout rejeita produtos sem preço. No painel, edite o cadastro da peça, complete nome, descrição, preço e estoque; ao salvar com preço maior que 0, ela passa a usar a apresentação normal do produto. As seis fotografias reais iniciais de Mandalas foram enviadas ao bucket do Neon e mantêm o conteúdo dos arquivos originais.
+
+O armazenamento de mídia usa `aws4fetch` com assinatura S3, `fetch` e Web Crypto nativos do Worker. `npm run check:media` verifica upload/leitura, integridade dos bytes e bloqueio de compra de produtos sem preço.

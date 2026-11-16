@@ -34,6 +34,9 @@ jobs:
       - name: Check browser authentication client
         run: npm run check:auth
 
+      - name: Check product media
+        run: npm run check:media
+
       - name: Build Worker
         run: npm run build
 

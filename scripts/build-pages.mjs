@@ -16,6 +16,14 @@ const catalog = await response.json();
 if (!Array.isArray(catalog.categories) || !Array.isArray(catalog.products)) {
   throw new Error("The public catalog response has an unexpected shape.");
 }
+// O Pages não executa /api/media: as fotos do Neon continuam servidas pelo Worker.
+for (const product of catalog.products) {
+  for (const field of ["imageUrl", "glbUrl", "usdzUrl"]) {
+    if (typeof product[field] === "string" && product[field].startsWith("/api/media/")) {
+      product[field] = new URL(product[field], catalogUrl).href;
+    }
+  }
+}
 
 await rm(outputDirectory, { recursive: true, force: true });
 await mkdir(outputDirectory, { recursive: true });

@@ -21,9 +21,10 @@ for (const item of catalog.products) {
 
 const environment = { DEMO_CATALOG: 'true' };
 let storedProducts = [];
+let storedCategories = [];
 const dbContext = vm.createContext({
   env: environment, getDemoCatalog: () => catalog,
-  database: () => ({ query: async query => query.includes('FROM categories') ? [] : storedProducts }),
+  database: () => ({ query: async query => query.includes('FROM categories') ? storedCategories : storedProducts }),
 });
 vm.runInContext(compile('lib/catalog.ts'), dbContext);
 assert.equal((await dbContext.getCatalog()).products.length, 8);
@@ -34,6 +35,15 @@ environment.DEMO_CATALOG = 'true';
 storedProducts = [{ id: 'real-product', name: 'Peça real', category_name: 'Mandalas', width_cm: null, height_cm: null, depth_cm: null, price_cents: 15000, stock_quantity: 3 }];
 assert.equal((await dbContext.getCatalog()).demo, false);
 assert.equal((await dbContext.getCatalog()).products.length, 1);
+storedProducts = [{ ...storedProducts[0], price_cents: 0, stock_quantity: 0, category_id: 'mandalas-real' }];
+storedCategories = [{ id: 'mandalas-real', name: 'Mandalas', slug: 'mandalas', sort_order: 0, active: true }];
+const mixed = await dbContext.getCatalog();
+assert.equal(mixed.demo, true);
+assert.equal(mixed.products.length, 7);
+assert.equal(mixed.products.filter(item => item.category === 'Mandalas').length, 1);
+assert.equal(mixed.products.find(item => item.id === 'real-product').photoOnly, true);
+assert.equal(mixed.categories.length, 4);
+
 
 let databaseTouched = false, paymentTouched = false;
 const checkoutContext = vm.createContext({
@@ -57,7 +67,7 @@ const elements = new Map(), handlers = new Map(), storage = new Map(), requests 
 let currentCatalog = catalog;
 function element(selector) {
   if (!elements.has(selector)) elements.set(selector, {
-    textContent: '', innerHTML: '', value: '', max: '300', checked: false, open: false, hidden: false, listeners: new Map(),
+    textContent: '', innerHTML: '', style: {}, value: '', max: '300', checked: false, open: false, hidden: false, listeners: new Map(),
     classList: { add() {}, remove() {}, toggle() {} }, setAttribute() {}, focus() {}, scrollIntoView() {},
     addEventListener(name, callback) { this.listeners.set(name, callback); },
     showModal() { this.open = true; }, close() { this.open = false; },
@@ -135,4 +145,15 @@ assert.equal(run('Object.keys(cart).length'), 0);
 assert.equal(element('#catalogNotice').hidden, true);
 run("addToCart('real-one'); openCheckout()");
 assert.equal(element('#checkoutDialog').open, true);
+run('closeDialogs()');
+currentCatalog = { demo: false, categories: [{ name: 'Mandalas' }], products: [{ ...catalog.products[0], id: 'photo-only-real', priceCents: 0, photoOnly: true, stockQuantity: 0, demo: false, glbUrl: '' }] };
+await run('loadCatalog()');
+assert.match(element('#productGrid').innerHTML, /photo-only-card/);
+assert.doesNotMatch(element('#productGrid').innerHTML, /product-price|data-add=/);
+run("addToCart('photo-only-real')");
+assert.equal(run('Object.keys(cart).length'), 0);
+run("openProduct('photo-only-real')");
+assert.match(element('#productDetail').innerHTML, /photo-only-detail/);
+assert.doesNotMatch(element('#productDetail').innerHTML, /detailAdd|detail-price/);
+console.log('PASS: fotos sem preço aparecem sem compra; ampliação da foto; exemplos da mesma categoria removidos.');
 console.log('PASS: 8 exemplos/4 categorias; filtros e busca; carrinho, quantidades e remoção; sugestões complementares sem duplicação; simulação sem cobrança; bloqueio servidor; substituição pelo catálogo real.');

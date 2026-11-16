@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     const placeholders = normalized.map((_, index) => `$${index + 1}`).join(",");
     const products = await sql.query(
       `SELECT id, name, price_cents, stock_quantity, made_to_order FROM products
-       WHERE status = 'active' AND id IN (${placeholders})`,
+       WHERE status = 'active' AND price_cents > 0 AND id IN (${placeholders})`,
       normalized.map(item => item.productId),
     ) as Array<{ id: string; name: string; price_cents: number; stock_quantity: number; made_to_order: boolean }>;
     if (products.length !== normalized.length) return json({ error: "Um produto do carrinho não está mais disponível." }, 409);

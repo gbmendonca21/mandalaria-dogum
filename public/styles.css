@@ -100,3 +100,10 @@
 .auth-divider:before,.auth-divider:after{content:'';height:1px;background:var(--line);flex:1}
 .auth-message{font-size:12px;line-height:1.6;color:var(--terracotta);overflow-wrap:anywhere}
 .account-mode-options button:focus-visible,.google-login-button:focus-visible{outline:2px solid var(--terracotta);outline-offset:3px}
+
+.photo-only-open{display:block;width:100%;padding:0;border:0;text-align:inherit}
+.photo-only-card .product-photo{object-fit:contain;padding:8px}
+.photo-only-open:focus-visible{outline:2px solid var(--terracotta);outline-offset:4px}
+.photo-only-detail{background:#efe7d8;padding:12px}
+.photo-only-detail .detail-photo{height:auto;max-height:85vh;max-height:85dvh;object-fit:contain}
+.admin-price-help{font-size:12px;line-height:1.5;color:var(--muted)}

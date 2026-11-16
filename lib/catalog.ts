@@ -28,6 +28,7 @@ export function mapProduct(row: RecordRow) {
     heightCm: row.height_cm === null ? null : Number(row.height_cm),
     depthCm: row.depth_cm === null ? null : Number(row.depth_cm),
     priceCents: row.price_cents,
+    photoOnly: Number(row.price_cents) === 0,
     stockQuantity: row.stock_quantity,
     madeToOrder: row.made_to_order,
     status: row.status,
@@ -56,8 +57,23 @@ export async function getCatalog(includeDrafts = false) {
      ${includeDrafts ? "" : "WHERE p.status = 'active' AND (c.active = true OR c.id IS NULL)"}
      ORDER BY p.featured DESC, p.created_at DESC`,
   );
-  if (!includeDrafts && !products.length && env.DEMO_CATALOG === "true") {
-    return getDemoCatalog();
+  if (!includeDrafts && products.every(row => Number(row.price_cents) === 0) && env.DEMO_CATALOG === "true") {
+    const demonstration = getDemoCatalog();
+    if (!products.length) return demonstration;
+    // Fotos reais substituem os exemplos da mesma categoria; as demais continuam em demonstração.
+    const realCategories = new Set(products.map(row => row.category_name === "Velas artesanais aromáticas" ? "Velas aromáticas" : row.category_name));
+    return {
+      demo: true,
+      categories: [
+        ...categories.map(mapCategory),
+        ...demonstration.categories.filter(category => !categories.some(row => row.name === category.name ||
+          (category.name === "Velas aromáticas" && row.name === "Velas artesanais aromáticas"))),
+      ].sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder)),
+      products: [
+        ...products.map(mapProduct),
+        ...demonstration.products.filter(product => !realCategories.has(product.category)),
+      ],
+    };
   }
   return {
     demo: false,

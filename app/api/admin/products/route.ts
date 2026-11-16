@@ -36,7 +36,7 @@ function parseProduct(body: Record<string, unknown>): ProductInput | string {
   if (!Number.isSafeInteger(priceCents) || priceCents < 0) return "Preço inválido.";
   if (!Number.isSafeInteger(stockQuantity) || stockQuantity < 0) return "Estoque inválido.";
   if (!["draft", "active", "archived"].includes(status)) return "Estado inválido.";
-  if (status === "active" && priceCents === 0) return "Informe o preço antes de publicar.";
+  // Preço zero publica somente a foto. A vitrine e o checkout impedem a compra.
   const measure = (input: unknown) => input === "" || input == null ? null : Number(input);
   const widthCm = measure(body.widthCm);
   const heightCm = measure(body.heightCm);
