@@ -87,3 +87,16 @@
 .demo-checkout-actions{display:grid;gap:8px}
 @media(max-width:380px){.cart-recommendations{margin-left:18px;margin-right:18px}.cart-recommendation{grid-template-columns:48px minmax(0,1fr) auto;gap:8px}.recommendation-photo{width:48px;height:58px}.cart-recommendation button{font-size:10px;padding:8px 6px}}
 @media(max-height:650px){.drawer-head{padding-top:15px;padding-bottom:12px}.cart-bottom{padding-top:12px;padding-bottom:15px}.cart-bottom p{margin:8px 0}.cart-bottom .button{min-height:44px}}
+
+.account-mode-options{display:flex;border:1px solid var(--line);border-radius:4px;padding:4px;gap:4px;margin:22px 0 16px}
+.account-mode-options button{flex:1;min-height:42px;border:0;border-radius:2px;background:transparent;color:var(--muted);font-size:13px;font-weight:700}
+.account-mode-options button[aria-pressed=true]{background:var(--saffron-light);color:var(--ink)}
+.google-login-button{background:#fff;border:1px solid #d8cdbc;border-radius:4px;gap:12px;color:var(--ink)}
+.google-login-button svg{width:20px;height:20px;flex:none;stroke:none}
+.google-login-button span{font-size:13px;font-weight:700}
+.google-login-button:hover{background:var(--cream)}
+.google-login-button:disabled{opacity:.65;cursor:wait;transform:none}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:20px 0 0;font-size:11px;color:var(--muted)}
+.auth-divider:before,.auth-divider:after{content:'';height:1px;background:var(--line);flex:1}
+.auth-message{font-size:12px;line-height:1.6;color:var(--terracotta);overflow-wrap:anywhere}
+.account-mode-options button:focus-visible,.google-login-button:focus-visible{outline:2px solid var(--terracotta);outline-offset:3px}

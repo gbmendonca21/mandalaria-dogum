@@ -195,8 +195,13 @@ function makeOrderMessage(form) { const data = Object.fromEntries(new FormData(f
 function renderAccount() {
   const host = $('#accountContent');
   $('#accountTitle').textContent = me.authenticated ? 'Minha conta' : accountMode === 'signup' ? 'Criar conta' : 'Login';
+  if (!me.authenticated && accountMode === 'reset') {
+    $('#accountTitle').textContent = 'Recuperar senha';
+    host.innerHTML = `<p>Receba um código no seu e-mail e escolha uma nova senha.</p><form id="passwordResetForm" class="admin-form"><label>E-mail<input id="passwordResetEmail" name="email" type="email" autocomplete="email" required></label><button type="button" class="button button-outline full-button" id="sendPasswordResetCode">Enviar código</button><label>Código recebido<input name="otp" inputmode="numeric" autocomplete="one-time-code" required></label><label>Nova senha<input name="password" type="password" autocomplete="new-password" required minlength="8"></label><button type="submit" class="button button-dark full-button">Salvar nova senha</button><button type="button" class="text-button" data-auth-mode="signin">Voltar ao login</button></form><p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>`;
+    return;
+  }
   if (!me.authenticated) {
-    host.innerHTML = `<p>Entre com seu e-mail e senha para acessar sua conta.</p><form id="accountAuthForm" class="admin-form">${accountMode === 'signup' ? '<label>Nome<input name="name" required autocomplete="name" maxlength="100"></label>' : ''}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Senha<input name="password" type="password" required minlength="8" autocomplete="${accountMode === 'signup' ? 'new-password' : 'current-password'}"></label><button class="button button-dark full-button" type="submit">${accountMode === 'signup' ? 'Criar conta' : 'Entrar'}</button><button class="text-button" type="button" id="toggleAuthMode">${accountMode === 'signup' ? 'Já tenho uma conta' : 'Primeiro acesso? Criar conta'}</button>${accountMode === 'signin' ? '<button class="text-button" type="button" id="forgotPassword">Esqueci minha senha</button>' : ''}<p id="authMessage" role="status"></p></form>`;
+    host.innerHTML = `<p>${accountMode === 'signup' ? 'Crie sua conta com Google ou cadastre seu e-mail.' : 'Acesse sua conta com Google ou com seu e-mail e senha.'}</p><div class="account-mode-options" role="group" aria-label="Acessar ou criar conta"><button type="button" data-auth-mode="signin" aria-pressed="${accountMode === 'signin'}">Entrar</button><button type="button" data-auth-mode="signup" aria-pressed="${accountMode === 'signup'}">Criar conta</button></div><button type="button" class="button google-login-button full-button" id="googleSignIn"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65Z"/><path fill="#FBBC05" d="M10.53 28.59a14.4 14.4 0 0 1 0-9.18l-7.98-6.19a24 24 0 0 0 0 21.56l7.98-6.19Z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.17 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"/></svg><span>Continuar com Google</span></button><div class="auth-divider"><span>ou use seu e-mail</span></div><form id="accountAuthForm" class="admin-form">${accountMode === 'signup' ? '<label>Nome<input name="name" required autocomplete="name" maxlength="100"></label>' : ''}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Senha<input name="password" type="password" required minlength="8" autocomplete="${accountMode === 'signup' ? 'new-password' : 'current-password'}"></label><button class="button button-dark full-button" type="submit">${accountMode === 'signup' ? 'Criar conta' : 'Entrar'}</button>${accountMode === 'signin' ? '<button class="text-button" type="button" id="forgotPassword">Esqueci minha senha</button>' : ''}</form><p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>`;
     return;
   }
   const verification = !me.emailVerified ? `<form id="verifyEmailForm" class="admin-form"><p>Confirme seu e-mail para ativar sua conta.</p><label>Código de verificação<input name="otp" inputmode="numeric" autocomplete="one-time-code" required></label><button class="button button-dark full-button" type="submit">Verificar e-mail</button><button class="text-button" type="button" id="sendVerificationCode">Enviar código novamente</button><p id="authMessage" role="status"></p></form>` : '';
@@ -204,7 +209,7 @@ function renderAccount() {
 }
 async function openAccount() {
   if (window.MANDALARIA_CONFIG.staticMode) {
-    location.assign('https://mandalaria-dogum.mandalaria-dogum-shop.workers.dev/?login=1');
+    location.assign('https://mandalaria-dogum.vertice-digital.workers.dev/?login=1');
     return;
   }
   await loadMe();
@@ -215,7 +220,7 @@ async function openAccount() {
 }
 async function openAdmin() {
   if (window.MANDALARIA_CONFIG.staticMode) {
-    location.assign('https://mandalaria-dogum.mandalaria-dogum-shop.workers.dev/?admin=1');
+    location.assign('https://mandalaria-dogum.vertice-digital.workers.dev/?admin=1');
     return;
   }
   await loadMe();
@@ -302,6 +307,33 @@ document.addEventListener('click', async event => {
   if (target.id === 'modelTrigger') { $('#modelBox').classList.toggle('open'); return; }
   if (target.id === 'arStart') { const viewer = $('#arViewer'); if (viewer?.canActivateAR) { arPendingReturn = true; arReturnGuardUntil = Date.now() + 2200; Promise.resolve(viewer.activateAR()).catch(() => { arPendingReturn = false; showInfo('AR indisponível', 'Não foi possível abrir a câmera neste aparelho.'); }); } return; }
   if (target.id === 'openAdminFromAccount') { await openAdmin(); return; }
+  if (target.dataset.authMode) { accountMode = target.dataset.authMode === 'signup' ? 'signup' : 'signin'; renderAccount(); return; }
+  if (target.id === 'googleSignIn') {
+    const button = $('#googleSignIn'), message = $('#authMessage');
+    button.disabled = true; message.textContent = 'Abrindo o Google...';
+    try {
+      const result = await window.MANDALARIA_AUTH.signIn.social({
+        provider: 'google',
+        callbackURL: `${location.origin}/?login=1&auth=google`,
+        errorCallbackURL: `${location.origin}/?login=1&auth=error`,
+      });
+      if (result.error) throw new Error(result.error.message || 'Não foi possível entrar com Google.');
+    } catch (error) { message.textContent = error.message; button.disabled = false; }
+    return;
+  }
+  if (target.id === 'forgotPassword') { accountMode = 'reset'; renderAccount(); return; }
+  if (target.id === 'sendPasswordResetCode') {
+    const input = $('#passwordResetEmail');
+    if (!input.reportValidity()) return;
+    target.disabled = true;
+    try {
+      const result = await window.MANDALARIA_AUTH.emailOtp.sendVerificationOtp({ email: input.value.trim(), type: 'forget-password' });
+      if (result.error) throw new Error(result.error.message || 'Não foi possível enviar o código.');
+      $('#authMessage').textContent = 'Se houver uma conta com esse e-mail, você receberá um código para alterar a senha.';
+    } catch (error) { $('#authMessage').textContent = error.message; }
+    finally { target.disabled = false; }
+    return;
+  }
   if (target.id === 'toggleAuthMode') { accountMode = accountMode === 'signup' ? 'signin' : 'signup'; renderAccount(); return; }
   if (target.id === 'sendVerificationCode') {
     try {
@@ -368,6 +400,18 @@ document.addEventListener('submit', async event => {
     }
     return;
   }
+  if (event.target.id === 'passwordResetForm') {
+    event.preventDefault();
+    const form = event.target, data = Object.fromEntries(new FormData(form).entries()), button = form.querySelector('[type="submit"]');
+    button.disabled = true;
+    try {
+      const result = await window.MANDALARIA_AUTH.emailOtp.resetPassword({ email: data.email.trim(), otp: data.otp.trim(), password: data.password });
+      if (result.error) throw new Error(result.error.message || 'Não foi possível alterar a senha.');
+      accountMode = 'signin'; renderAccount();
+      $('#authMessage').textContent = 'Senha atualizada. Entre com seu e-mail e a nova senha.';
+    } catch (error) { $('#authMessage').textContent = error.message; button.disabled = false; }
+    return;
+  }
   if (event.target.id === 'verifyEmailForm') {
     event.preventDefault();
     const otp = new FormData(event.target).get('otp');
@@ -427,6 +471,11 @@ if (paymentResult) {
 renderProducts(); renderCart();
 Promise.all([loadCatalog(), loadMe()]).then(() => {
   const params = new URLSearchParams(location.search);
-  if (params.get('login') === '1') return openAccount();
+  if (params.get('auth') === 'google' && me.admin) return openAdmin();
+  if (params.get('login') === '1') {
+    return openAccount().then(() => {
+      if (params.get('auth') === 'error' && $('#authMessage')) $('#authMessage').textContent = 'O login com Google não foi concluído. Tente novamente ou entre com seu e-mail.';
+    });
+  }
   if (params.get('admin') === '1') return openAdmin();
 });

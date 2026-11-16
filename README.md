@@ -1,13 +1,13 @@
 # Mandalaria D'ogum
 
-Loja publicada em [Cloudflare Workers](https://mandalaria-dogum.mandalaria-dogum-shop.workers.dev/), com rotas de servidor, arquivos no Neon Object Storage e PostgreSQL no Neon. A vitrine está em `legacy-index.html` e é servida pela rota `app/route.ts`.
+Loja publicada em [Cloudflare Workers](https://mandalaria-dogum.vertice-digital.workers.dev/), com rotas de servidor, arquivos no Neon Object Storage e PostgreSQL no Neon. A vitrine está em `legacy-index.html` e é servida pela rota `app/route.ts`.
 
 A prévia em <https://gbmendonca21.github.io/mandalaria-dogum/> é gerada por `npm run build:pages` e publicada pelo workflow do GitHub. Ela contém um retrato do catálogo público no momento do build e somente os recursos que funcionam sem servidor. O login, o painel administrativo e o banco funcionam no Cloudflare Worker; mudanças no catálogo exigem uma nova execução do workflow para aparecer no Pages.
 
 ## O que funciona
 
 - Catálogo público vindo do Neon (`GET /api/catalog`), com busca, categorias, filtros, detalhes, carrinho local e exibição opcional de modelos GLB/USDZ e AR.
-- Cadastro, login e verificação de e-mail por Neon Auth. O painel exige e-mail verificado e uma função na tabela `admin_memberships`.
+- Cadastro por e-mail e senha, login com Google, recuperação de senha por código e verificação de e-mail por Neon Auth. O painel exige e-mail verificado e uma função na tabela `admin_memberships`.
 - Gestão de produtos e categorias, uploads de fotos (JPG/PNG/WebP) e modelos GLB/USDZ para o bucket privado `mandalaria-media` no Neon, e atualização do andamento de pedidos.
 - Checkout Pro do Mercado Pago. O servidor recalcula preços usando o Neon, cria pedidos e preferências, e valida a assinatura de webhooks. Pagamentos aprovados sem estoque suficiente são reembolsados automaticamente.
 - Produtos começam como rascunho. Apenas os publicados aparecem na vitrine; produtos sem foto mostram um espaço neutro com o símbolo da marca.
@@ -46,8 +46,14 @@ npm run dev:neon
 
 Abra `http://127.0.0.1:5173`. O script usa a branch `development` do Neon sem gravar a URL do banco em arquivo. `.dev.vars` guarda segredos locais de sessão e armazenamento e não deve ser versionado.
 
-Antes de publicar, execute `npm run check:demo`, `npm run typecheck` e `npm run build`. A verificação do catálogo de demonstração cobre filtros, carrinho, recomendações, simulação e bloqueio de pagamentos fictícios. O workflow do Cloudflare também executa essas verificações; um build bem-sucedido com o deploy pulado não atualiza o Worker em produção.
+Antes de publicar, execute `npm run check:demo`, `npm run check:auth`, `npm run typecheck` e `npm run build`. A verificação do catálogo de demonstração cobre filtros, carrinho, recomendações, simulação e bloqueio de pagamentos fictícios. O workflow do Cloudflare também executa essas verificações; um build bem-sucedido com o deploy pulado não atualiza o Worker em produção.
 
 A compilação gera `dist/`, que não é versionada. O arquivo `generate_photo_ar.py` permanece como referência para criar uma prévia 3D a partir de uma foto; modelos fiéis devem ser feitos a partir das peças reais.
 
 Os seis produtos conceituais da primeira vitrine permanecem no histórico do Git, em `febbe95:dist/app.js`. Somente a Mandala Aurora tinha uma prévia AR. O modelo `public/assets/mandala-preview.glb` e a foto `public/assets/mandala-recorte.png` continuam disponíveis; o GLB é uma imagem plana de 45 cm para testar a composição na parede. A vitrine atual oferece 3D/AR quando um produto publicado tem um arquivo GLB cadastrado, com USDZ opcional para iPhone. A Mandala Aurora do catálogo de demonstração reutiliza essa prévia. Os exemplos não foram inseridos como produtos reais no Neon.
+
+## Login com Google
+
+O domínio de produção `https://mandalaria-dogum.vertice-digital.workers.dev` está autorizado no Neon Auth. O botão “Continuar com Google” usa `signIn.social`; o proxy de autenticação troca o verificador de retorno pela sessão da loja. Cadastro com Google e cadastro por e-mail não concedem privilégios automaticamente: o painel exige e-mail verificado e associação na tabela `admin_memberships`.
+
+O Google usa atualmente o aplicativo compartilhado do Neon, adequado à demonstração. Antes de atender clientes reais, configure Client ID e Client Secret próprios no Neon, seguindo https://neon.com/docs/auth/guides/setup-oauth. Não envie esses segredos ao navegador. Se o domínio mudar, atualize também a lista de domínios confiáveis do Neon Auth.

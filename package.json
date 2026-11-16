@@ -16,7 +16,8 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "dev:neon": "node scripts/dev-neon.mjs",
-    "check:demo": "node scripts/checks/demo-cart.mjs"
+    "check:demo": "node scripts/checks/demo-cart.mjs",
+    "check:auth": "node scripts/checks/auth-flow.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1163.0",
