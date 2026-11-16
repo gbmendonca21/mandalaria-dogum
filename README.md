@@ -57,3 +57,5 @@ Os seis produtos conceituais da primeira vitrine permanecem no histórico do Git
 O domínio de produção `https://mandalaria-dogum.vertice-digital.workers.dev` está autorizado no Neon Auth. O botão “Continuar com Google” usa `signIn.social`; o proxy de autenticação troca o verificador de retorno pela sessão da loja. Cadastro com Google e cadastro por e-mail não concedem privilégios automaticamente: o painel exige e-mail verificado e associação na tabela `admin_memberships`.
 
 O Google usa atualmente o aplicativo compartilhado do Neon, adequado à demonstração. Antes de atender clientes reais, configure Client ID e Client Secret próprios no Neon, seguindo https://neon.com/docs/auth/guides/setup-oauth. Não envie esses segredos ao navegador. Se o domínio mudar, atualize também a lista de domínios confiáveis do Neon Auth.
+
+A verificação `npm run check:auth` recompila e executa o cliente real de autenticação em um contexto de navegador sem o global `process`, além dos testes de formulário e autorização. O build substitui `process.env.NODE_ENV` por uma constante para que bibliotecas não dependam do Node no navegador.

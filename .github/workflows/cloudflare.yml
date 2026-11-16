@@ -31,6 +31,9 @@ jobs:
       - name: Check TypeScript
         run: npm run typecheck
 
+      - name: Check browser authentication client
+        run: npm run check:auth
+
       - name: Build Worker
         run: npm run build
 

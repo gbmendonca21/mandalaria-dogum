@@ -35,6 +35,11 @@ async function api(path, options = {}) {
   if (!response.ok) throw new Error(data.error || 'Não foi possível concluir. Tente novamente.');
   return data;
 }
+function getAuthClient() {
+  const client = window.MANDALARIA_AUTH;
+  if (!client) throw new Error('Não foi possível carregar o login. Recarregue a página e tente novamente.');
+  return client;
+}
 async function mutate(path, method, body) {
   return api(path, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 }
@@ -312,7 +317,7 @@ document.addEventListener('click', async event => {
     const button = $('#googleSignIn'), message = $('#authMessage');
     button.disabled = true; message.textContent = 'Abrindo o Google...';
     try {
-      const result = await window.MANDALARIA_AUTH.signIn.social({
+      const result = await getAuthClient().signIn.social({
         provider: 'google',
         callbackURL: `${location.origin}/?login=1&auth=google`,
         errorCallbackURL: `${location.origin}/?login=1&auth=error`,
@@ -327,7 +332,7 @@ document.addEventListener('click', async event => {
     if (!input.reportValidity()) return;
     target.disabled = true;
     try {
-      const result = await window.MANDALARIA_AUTH.emailOtp.sendVerificationOtp({ email: input.value.trim(), type: 'forget-password' });
+      const result = await getAuthClient().emailOtp.sendVerificationOtp({ email: input.value.trim(), type: 'forget-password' });
       if (result.error) throw new Error(result.error.message || 'Não foi possível enviar o código.');
       $('#authMessage').textContent = 'Se houver uma conta com esse e-mail, você receberá um código para alterar a senha.';
     } catch (error) { $('#authMessage').textContent = error.message; }
@@ -337,7 +342,7 @@ document.addEventListener('click', async event => {
   if (target.id === 'toggleAuthMode') { accountMode = accountMode === 'signup' ? 'signin' : 'signup'; renderAccount(); return; }
   if (target.id === 'sendVerificationCode') {
     try {
-      const result = await window.MANDALARIA_AUTH.emailOtp.sendVerificationOtp({ email: me.email, type: 'email-verification' });
+      const result = await getAuthClient().emailOtp.sendVerificationOtp({ email: me.email, type: 'email-verification' });
       if (result.error) throw new Error(result.error.message || 'Não foi possível enviar o código.');
       $('#authMessage').textContent = 'Enviamos um novo código para seu e-mail.';
     } catch (error) { $('#authMessage').textContent = error.message; }
@@ -345,7 +350,7 @@ document.addEventListener('click', async event => {
   }
   if (target.id === 'signOutButton') {
     try {
-      const result = await window.MANDALARIA_AUTH.signOut();
+      const result = await getAuthClient().signOut();
       if (result.error) throw new Error(result.error.message || 'Não foi possível sair.');
       await loadMe(); accountMode = 'signin'; renderAccount();
     }
@@ -384,11 +389,11 @@ document.addEventListener('submit', async event => {
     button.disabled = true;
     try {
       const result = accountMode === 'signup'
-        ? await window.MANDALARIA_AUTH.signUp.email({ name: data.name, email: data.email, password: data.password })
-        : await window.MANDALARIA_AUTH.signIn.email({ email: data.email, password: data.password });
+        ? await getAuthClient().signUp.email({ name: data.name, email: data.email, password: data.password })
+        : await getAuthClient().signIn.email({ email: data.email, password: data.password });
       if (result.error) throw new Error(result.error.message || 'Não foi possível entrar.');
       if (accountMode === 'signup') {
-        const sent = await window.MANDALARIA_AUTH.emailOtp.sendVerificationOtp({ email: data.email, type: 'email-verification' });
+        const sent = await getAuthClient().emailOtp.sendVerificationOtp({ email: data.email, type: 'email-verification' });
         if (sent.error) throw new Error(sent.error.message || 'Conta criada, mas não foi possível enviar o código.');
       }
       await loadMe();
@@ -405,7 +410,7 @@ document.addEventListener('submit', async event => {
     const form = event.target, data = Object.fromEntries(new FormData(form).entries()), button = form.querySelector('[type="submit"]');
     button.disabled = true;
     try {
-      const result = await window.MANDALARIA_AUTH.emailOtp.resetPassword({ email: data.email.trim(), otp: data.otp.trim(), password: data.password });
+      const result = await getAuthClient().emailOtp.resetPassword({ email: data.email.trim(), otp: data.otp.trim(), password: data.password });
       if (result.error) throw new Error(result.error.message || 'Não foi possível alterar a senha.');
       accountMode = 'signin'; renderAccount();
       $('#authMessage').textContent = 'Senha atualizada. Entre com seu e-mail e a nova senha.';
@@ -416,7 +421,7 @@ document.addEventListener('submit', async event => {
     event.preventDefault();
     const otp = new FormData(event.target).get('otp');
     try {
-      const result = await window.MANDALARIA_AUTH.emailOtp.verifyEmail({ email: me.email, otp });
+      const result = await getAuthClient().emailOtp.verifyEmail({ email: me.email, otp });
       if (result.error) throw new Error(result.error.message || 'Código inválido.');
       await loadMe();
       if (me.admin) await openAdmin();
