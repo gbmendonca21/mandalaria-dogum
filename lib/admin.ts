@@ -7,11 +7,13 @@ export async function requireAdmin() {
   if (!user) return { response: json({ error: "Entre na sua conta para continuar." }, 401) };
   const sql = database();
   const rows = await sql.query(
-    "SELECT role, email_verification_required FROM admin_memberships WHERE email = $1 LIMIT 1",
+    "SELECT role, email_verification_required, verification_user_id FROM admin_memberships WHERE email = $1 LIMIT 1",
     [user.email.toLowerCase()],
   );
   if (!rows.length) return { response: json({ error: "Esta conta não tem acesso ao painel." }, 403) };
-  const requiresVerification = rows[0].role !== "owner" || rows[0].email_verification_required !== false;
+  const verificationExempt = rows[0].role === "owner" && rows[0].email_verification_required === false &&
+    typeof rows[0].verification_user_id === "string" && rows[0].verification_user_id === user.id;
+  const requiresVerification = !verificationExempt;
   if (!user.emailVerified && requiresVerification) {
     return { response: json({ error: "Verifique seu e-mail para continuar." }, 403) };
   }
