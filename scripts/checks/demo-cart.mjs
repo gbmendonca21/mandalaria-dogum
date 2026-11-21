@@ -76,7 +76,7 @@ function element(selector) {
   return elements.get(selector);
 }
 const app = vm.createContext({
-  window: { MANDALARIA_CONFIG: { whatsapp: '' } },
+  window: { MANDALARIA_CONFIG: { whatsapp: '5513981196066', whatsappVerified: true, businessVerified: false, salesReady: false } },
   document: { body: { style: {} }, querySelector: element,
     querySelectorAll: selector => selector === 'dialog[open]' ? [...elements.values()].filter(item => item.open) : selector.startsWith('main,') ? [element('main'),element('footer')] : [],
     addEventListener(name, callback) { handlers.set(name, [...handlers.get(name) || [], callback]); },
@@ -92,6 +92,10 @@ const click = async (id = '', dataset = {}) => {
   await handlers.get('click')[0]({ target, preventDefault() {}, stopPropagation() {} });
 };
 vm.runInContext(appSource, app);
+run("contactStore('Olá!')");
+assert.equal(new URL(app.location.href).pathname,'/5513981196066');
+assert.equal(new URL(app.location.href).searchParams.get('text'),'Olá!');
+assert.equal(run('SALES_READY'),false,'Contato confirmado não deve habilitar compras reais');
 await run('loadCatalog()');
 run('openCart()');
 assert.equal(app.document.activeElement,element('#cartDrawer [data-close]'));

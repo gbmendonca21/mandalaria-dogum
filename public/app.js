@@ -1,5 +1,5 @@
 const STORE_CONFIG = window.MANDALARIA_CONFIG;
-const STORE_WHATSAPP = STORE_CONFIG.businessVerified ? STORE_CONFIG.whatsapp : '';
+const STORE_WHATSAPP = STORE_CONFIG.whatsappVerified === true && /^\d{10,15}$/.test(STORE_CONFIG.whatsapp || '') ? STORE_CONFIG.whatsapp : '';
 const SALES_READY = STORE_CONFIG.salesReady === true;
 const STORAGE_CART = 'mandalaria_cart_v2';
 const $ = selector => document.querySelector(selector);
@@ -172,7 +172,7 @@ function openCheckout() {
     openDialog('#demoCheckoutDialog');
     return;
   }
-  if (!SALES_READY) { showInfo('Loja em preparação', 'Compras reais estão indisponíveis até a conclusão dos dados legais e dos canais oficiais da loja.'); return; }
+  if (!SALES_READY) { showInfo('Loja em preparação', 'Compras reais estão indisponíveis até a conclusão dos dados legais da loja.'); return; }
   openDialog('#checkoutDialog');
 }
 function renderCart() {

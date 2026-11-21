@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     if (Array.isArray(body.items) && body.items.some(item => item && isDemoProductId(item.productId))) {
       return json({ error: "Produtos de demonstração não podem gerar pagamentos ou pedidos reais." }, 409);
     }
-    if (!sellerIsReady()) return json({ error: "Compras reais desativadas: os dados legais e os canais oficiais da loja ainda estão pendentes." }, 503);
+    if (!sellerIsReady()) return json({ error: "Compras reais desativadas: os dados legais da loja ainda estão pendentes." }, 503);
     if (body.termsAccepted !== true || body.policyVersion !== storeSettings.policyVersion) return json({ error: "Leia e aceite os termos da compra antes de continuar." }, 400);
     if (!env.MERCADOPAGO_ACCESS_TOKEN) return json({ error: "O pagamento ainda não está configurado." }, 503);
     const shippingCents = Number(env.SHIPPING_CENTS);
