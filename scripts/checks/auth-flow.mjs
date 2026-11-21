@@ -97,8 +97,8 @@ assert.equal(calls.filter(([type])=>type==='reset').at(-1)[1].email,'client@exam
 assert.equal(session.authenticated,false);assert.equal(element('#accountTitle').textContent,'Login');
 console.log('PASS: senha para cliente e administrador; confirmação e tamanho; senha atual incorreta; revogação de outros acessos; Google via OTP; alvo restrito à própria conta.');
 const transpile=file=>ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText.replace(/^import .+;\n/gm,'').replace(/^export /gm,'');
-let user=null, queryEmail;
-const server=vm.createContext({getAuth:()=>({getSession:async options=>{assert.equal(options.query.disableCookieCache,"true");return {data:{user}}}}),database:()=>({query:async(_query,args)=>{queryEmail=args[0];return queryEmail==='owner@example.com'?[{role:'editor'}]:[]}}),json:(body,status=200)=>Response.json(body,{status})});
+let user=null, queryEmail, membershipRole="editor", verificationRequired=true;
+const server=vm.createContext({getAuth:()=>({getSession:async options=>{assert.equal(options.query.disableCookieCache,"true");return {data:{user}}}}),database:()=>({query:async(_query,args)=>{queryEmail=args[0];return queryEmail==='owner@example.com'?[{role:membershipRole,email_verification_required:verificationRequired}]:[]}}),json:(body,status=200)=>Response.json(body,{status})});
 vm.runInContext(transpile('lib/admin.ts'),server);
 assert.equal((await server.requireAdmin()).response.status,401);
 user={email:'owner@example.com',emailVerified:false};assert.equal((await server.requireAdmin()).response.status,403);
@@ -107,6 +107,16 @@ user={email:'OWNER@EXAMPLE.COM',emailVerified:true};assert.equal((await server.r
 // Both the account status endpoint and admin guard must reject cached identity snapshots.
 vm.runInContext(transpile('app/api/me/route.ts'),server);
 assert.equal((await (await server.GET()).json()).admin,true);
+membershipRole='owner';verificationRequired=false;user={email:'owner@example.com',emailVerified:false};
+assert.equal((await server.requireAdmin()).role,'owner');
+const exempt=await (await server.GET()).json();assert.equal(exempt.admin,true);assert.equal(exempt.emailVerified,false);assert.equal(exempt.emailVerificationRequired,false);
+session={authenticated:true,admin:true,emailVerified:false,emailVerificationRequired:false,email:'owner@example.com'};
+await run('openAccount()');assert.doesNotMatch(element('#accountContent').innerHTML,/verifyEmailForm/);assert.match(element('#accountContent').innerHTML,/openAdminFromAccount/);
+membershipRole='editor';assert.equal((await server.requireAdmin()).response.status,403);
+membershipRole='owner';verificationRequired=true;assert.equal((await server.requireAdmin()).response.status,403);
+user={email:'client@example.com',emailVerified:false};assert.equal((await server.requireAdmin()).response.status,403);
+session={authenticated:true,admin:false,emailVerified:false,email:'client@example.com'};await run('openAccount()');assert.match(element('#accountContent').innerHTML,/verifyEmailForm/);
+console.log('PASS: dispensa de verificação exige associação owner e autorização individual; demais contas continuam exigindo confirmação.');
 const authProxy=vm.createContext({URL,Request,getAuth:()=>({handler:()=>({GET:async request=>{assert.equal(new URL(request.url).searchParams.get('disableCookieCache'),'true');return Response.json(null)}})})});
 vm.runInContext(transpile('app/api/auth/[...path]/route.ts'),authProxy);
 await vm.runInContext("GET(new Request('https://store.example/api/auth/get-session?disableCookieCache=false'),{})",authProxy);

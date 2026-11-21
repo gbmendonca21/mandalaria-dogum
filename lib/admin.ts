@@ -5,13 +5,16 @@ export async function requireAdmin() {
   const { data: session } = await getAuth().getSession({ query: { disableCookieCache: "true" } });
   const user = session?.user;
   if (!user) return { response: json({ error: "Entre na sua conta para continuar." }, 401) };
-  if (!user.emailVerified) return { response: json({ error: "Verifique seu e-mail para continuar." }, 403) };
   const sql = database();
   const rows = await sql.query(
-    "SELECT role FROM admin_memberships WHERE email = $1 LIMIT 1",
+    "SELECT role, email_verification_required FROM admin_memberships WHERE email = $1 LIMIT 1",
     [user.email.toLowerCase()],
   );
   if (!rows.length) return { response: json({ error: "Esta conta não tem acesso ao painel." }, 403) };
+  const requiresVerification = rows[0].role !== "owner" || rows[0].email_verification_required !== false;
+  if (!user.emailVerified && requiresVerification) {
+    return { response: json({ error: "Verifique seu e-mail para continuar." }, 403) };
+  }
   return { user, role: rows[0].role as string };
 }
 

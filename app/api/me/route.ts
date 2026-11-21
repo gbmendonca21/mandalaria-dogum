@@ -10,15 +10,17 @@ export async function GET() {
     if (!user) return json({ authenticated: false, admin: false });
     const sql = database();
     const rows = await sql.query(
-      "SELECT role FROM admin_memberships WHERE email = $1 LIMIT 1",
+      "SELECT role, email_verification_required FROM admin_memberships WHERE email = $1 LIMIT 1",
       [user.email.toLowerCase()],
     );
+    const emailVerificationRequired = rows[0]?.role !== "owner" || rows[0]?.email_verification_required !== false;
     return json({
       authenticated: true,
       emailVerified: user.emailVerified,
+      emailVerificationRequired,
       email: user.email,
       displayName: user.name || user.email,
-      admin: user.emailVerified && rows.length > 0,
+      admin: (user.emailVerified || !emailVerificationRequired) && rows.length > 0,
       role: rows[0]?.role ?? null,
     });
   } catch (error) {

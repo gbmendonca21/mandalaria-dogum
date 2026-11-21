@@ -7,7 +7,7 @@ A prévia em <https://gbmendonca21.github.io/mandalaria-dogum/> é gerada por `n
 ## O que funciona
 
 - Catálogo público vindo do Neon (`GET /api/catalog`), com busca, categorias, filtros, detalhes, carrinho local e exibição opcional de modelos GLB/USDZ e AR.
-- Cadastro por e-mail e senha, login com Google, recuperação de senha por código e verificação de e-mail por Neon Auth. O painel exige e-mail verificado e uma função na tabela `admin_memberships`.
+- Cadastro por e-mail e senha, login com Google, recuperação de senha por código e verificação de e-mail por Neon Auth. O painel exige uma função na tabela `admin_memberships` e segue a política de verificação da associação.
 - Gestão de produtos e categorias, uploads de fotos (JPG/PNG/WebP) e modelos GLB/USDZ para o bucket privado `mandalaria-media` no Neon, e atualização do andamento de pedidos.
 - Checkout Pro do Mercado Pago. O servidor recalcula preços usando o Neon, cria pedidos e preferências, e valida a assinatura de webhooks. Pagamentos aprovados sem estoque suficiente são reembolsados automaticamente.
 - Produtos começam como rascunho. Apenas os publicados aparecem na vitrine; produtos sem foto mostram um espaço neutro com o símbolo da marca.
@@ -21,7 +21,7 @@ O carrinho sugere até três peças em “Você esqueceu de algo?”, priorizand
 
 O projeto Neon `mandalaria-dogum` usa o banco `mandalaria` nas branches `main` e `development`. As migrações [`neon/001_init.sql`](neon/001_init.sql) e [`neon/002_site_owner.sql`](neon/002_site_owner.sql) foram aplicadas em ambas. Os identificadores estão em [`neon/README.md`](neon/README.md). Neon Auth foi habilitado nas duas branches.
 
-`DATABASE_URL`, `NEON_AUTH_COOKIE_SECRET` e as credenciais S3 do Neon são segredos de servidor. Nunca os coloque em `public/`, no Git ou no navegador. O painel verifica a sessão Neon Auth, a confirmação do e-mail e a tabela `admin_memberships`; a conta principal autorizada é a única associação administrativa em produção. Os scripts de instalação não concedem acesso automaticamente.
+`DATABASE_URL`, `NEON_AUTH_COOKIE_SECRET` e as credenciais S3 do Neon são segredos de servidor. Nunca os coloque em `public/`, no Git ou no navegador. O painel verifica a sessão Neon Auth, a tabela `admin_memberships` e a política individual de confirmação do e-mail; a conta principal autorizada é a única associação administrativa em produção. Os scripts de instalação não concedem acesso automaticamente.
 
 ## Publicação na Cloudflare
 
@@ -54,7 +54,7 @@ Os seis produtos conceituais da primeira vitrine permanecem no histórico do Git
 
 ## Login com Google
 
-O domínio de produção `https://mandalaria-dogum.vertice-digital.workers.dev` está autorizado no Neon Auth. O botão “Continuar com Google” usa `signIn.social`; o proxy de autenticação troca o verificador de retorno pela sessão da loja. Cadastro com Google e cadastro por e-mail não concedem privilégios automaticamente: o painel exige e-mail verificado e associação na tabela `admin_memberships`.
+O domínio de produção `https://mandalaria-dogum.vertice-digital.workers.dev` está autorizado no Neon Auth. O botão “Continuar com Google” usa `signIn.social`; o proxy de autenticação troca o verificador de retorno pela sessão da loja. Cadastro com Google e cadastro por e-mail não concedem privilégios automaticamente: o painel exige associação na tabela `admin_memberships` e segue a política individual de verificação.
 
 O Google usa atualmente o aplicativo compartilhado do Neon, adequado à demonstração. Antes de atender clientes reais, configure Client ID e Client Secret próprios no Neon, seguindo https://neon.com/docs/auth/guides/setup-oauth. Não envie esses segredos ao navegador. Se o domínio mudar, atualize também a lista de domínios confiáveis do Neon Auth.
 
@@ -79,6 +79,8 @@ O limite contra abuso é aproximado por localidade Cloudflare, de 30 operações
 O contato oficial por WhatsApp é `(13) 98119-6066`, configurado como `5513981196066` em `config/store.json`. `whatsappVerified` confirma apenas o canal informado; não substitui `businessVerified` nem libera compras reais. O e-mail de administrador é uma autorização privada em `admin_memberships`, independente do e-mail público de atendimento.
 
 
-A opção **Minha conta → Alterar senha** está disponível a todos os usuários autenticados, sem exigir função administrativa. Contas com senha confirmam a senha atual; contas que só usam Google criam uma senha da loja pelo código enviado ao próprio e-mail. A confirmação de senha é obrigatória, alterações encerram outros acessos e a redefinição por código encerra todas as sessões. Senhas iniciais de cadastro são geradas fora do repositório e não devem ser incluídas em arquivos, exemplos, logs ou no Git. O administrador continua precisando verificar o e-mail antes de abrir o painel.
+A opção **Minha conta → Alterar senha** está disponível a todos os usuários autenticados, sem exigir função administrativa. Contas com senha confirmam a senha atual; contas que só usam Google criam uma senha da loja pelo código enviado ao próprio e-mail. A confirmação de senha é obrigatória, alterações encerram outros acessos e a redefinição por código encerra todas as sessões. Senhas iniciais de cadastro são geradas fora do repositório e não devem ser incluídas em arquivos, exemplos, logs ou no Git. A verificação é obrigatória por padrão; a responsável pode autorizar uma dispensa individual para a associação proprietária.
 
 A leitura de sessão em `/api/me`, nas permissões administrativas e em `/api/auth/get-session` força revalidação no Neon com `disableCookieCache=true`. Isso evita que o snapshot assinado de sessão do SDK mantenha acesso após revogação. Não basta verificar apenas a validade da assinatura do cookie em operações autenticadas.
+
+A migração `neon/003_admin_verification_policy.sql` adiciona `email_verification_required=true` por padrão. Uma dispensa individual só é permitida para uma associação `owner`, mediante solicitação expressa da responsável. Isso não marca o e-mail como verificado no provedor e não dispensa autenticação por senha ou sessão válida. A senha da conta nunca é colocada no código ou no Git.
