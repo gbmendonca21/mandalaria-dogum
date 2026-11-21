@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { data: session } = await getAuth().getSession();
+    const { data: session } = await getAuth().getSession({ query: { disableCookieCache: "true" } });
     const user = session?.user;
     if (!user) return json({ authenticated: false, admin: false });
     const sql = database();

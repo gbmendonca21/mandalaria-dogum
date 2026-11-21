@@ -10,7 +10,11 @@ function element(selector){
 }
 let session={authenticated:false,admin:false};
 let socialError=false;
+let hasPassword=true, changeError=false;
 const auth={
+ listAccounts:async()=>({data:[{providerId:hasPassword?'credential':'google'}]}),
+ changePassword:async input=>{calls.push(['change',input]);return changeError?{error:{message:'Senha atual incorreta'}}:{}},
+ signOut:async()=>{calls.push(['signout']);session={authenticated:false,admin:false};return {}},
  signIn:{social:async input=>{calls.push(['google',input]);return socialError?{error:{message:'Google indisponível'}}:{}},email:async input=>{calls.push(['signin',input]);session={authenticated:true,admin:true,emailVerified:true,email:input.email};return {}}},
  signUp:{email:async input=>{calls.push(['signup',input]);session={authenticated:true,admin:false,emailVerified:false,email:input.email};return {}}},
  emailOtp:{sendVerificationOtp:async input=>{calls.push(['otp',input]);return {}},verifyEmail:async input=>{calls.push(['verify',input]);session={...session,emailVerified:true,admin:true};return {}},resetPassword:async input=>{calls.push(['reset',input]);return {}}},
@@ -54,17 +58,58 @@ assert.equal(element('#accountTitle').textContent,'Recuperar senha');
 element('#passwordResetEmail').value='owner@example.com';
 await click('sendPasswordResetCode');
 assert.equal(calls.filter(([type])=>type==='otp').at(-1)[1].type,'forget-password');
-await submit('passwordResetForm',{email:'owner@example.com',otp:'123456',password:'new-password'});
+await submit('passwordResetForm',{email:'owner@example.com',otp:'123456',password:'new-password',confirmPassword:'new-password'});
 assert.equal(element('#accountTitle').textContent,'Login');
 assert.match(element('#authMessage').textContent,/Senha atualizada/);
+// Password controls belong to every account, independently of admin membership.
+session={authenticated:true,admin:false,emailVerified:true,email:'client@example.com'};
+await run('openAccount()');
+assert.match(element('#accountContent').innerHTML,/id="changePasswordButton"/);
+assert.doesNotMatch(element('#accountContent').innerHTML,/id="openAdminFromAccount"/);
+await click('changePasswordButton');
+assert.equal(element('#accountTitle').textContent,'Alterar senha');
+await submit('changePasswordForm',{currentPassword:'old-password',password:'new-password',confirmPassword:'different'});
+assert.match(element('#authMessage').textContent,/não confere/);
+assert.equal(calls.filter(([type])=>type==='change').length,0);
+await submit('changePasswordForm',{currentPassword:'old-password',password:'short',confirmPassword:'short'});
+assert.equal(calls.filter(([type])=>type==='change').length,0);
+changeError=true;
+await submit('changePasswordForm',{currentPassword:'wrong-password',password:'new-password',confirmPassword:'new-password'});
+assert.equal(element('#authMessage').textContent,'Senha atual incorreta');
+changeError=false;
+await submit('changePasswordForm',{email:'other@example.com',userId:'another-user',currentPassword:'old-password',password:'new-password',confirmPassword:'new-password'});
+const changed=calls.filter(([type])=>type==='change').at(-1)[1];
+assert.equal(changed.currentPassword,'old-password');assert.equal(changed.newPassword,'new-password');assert.equal(changed.revokeOtherSessions,true);
+assert.equal(Object.hasOwn(changed,'userId'),false);assert.equal(Object.hasOwn(changed,'email'),false);
+assert.match(element('#accountMessage').textContent,/Senha alterada/);
+session={...session,admin:true};await run('openAccount()');
+assert.match(element('#accountContent').innerHTML,/id="changePasswordButton"/);
+// Google-only users create a password by proving mailbox access; the account email is fixed.
+hasPassword=false;session={authenticated:true,admin:false,emailVerified:true,email:'client@example.com'};
+await run('openAccount()');await click('changePasswordButton');
+assert.equal(element('#accountTitle').textContent,'Criar ou redefinir senha');
+assert.match(element('#accountContent').innerHTML,/value="client@example.com" readonly/);
+element('#passwordResetEmail').value='other@example.com';
+await click('sendPasswordResetCode');
+assert.equal(calls.filter(([type])=>type==='otp').at(-1)[1].email,'client@example.com');
+await submit('passwordResetForm',{email:'other@example.com',otp:'123456',password:'created-password',confirmPassword:'created-password'});
+assert.equal(calls.filter(([type])=>type==='reset').at(-1)[1].email,'client@example.com');
+assert.equal(session.authenticated,false);assert.equal(element('#accountTitle').textContent,'Login');
+console.log('PASS: senha para cliente e administrador; confirmação e tamanho; senha atual incorreta; revogação de outros acessos; Google via OTP; alvo restrito à própria conta.');
 const transpile=file=>ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText.replace(/^import .+;\n/gm,'').replace(/^export /gm,'');
 let user=null, queryEmail;
-const server=vm.createContext({getAuth:()=>({getSession:async()=>({data:{user}})}),database:()=>({query:async(_query,args)=>{queryEmail=args[0];return queryEmail==='owner@example.com'?[{role:'editor'}]:[]}}),json:(body,status=200)=>Response.json(body,{status})});
+const server=vm.createContext({getAuth:()=>({getSession:async options=>{assert.equal(options.query.disableCookieCache,"true");return {data:{user}}}}),database:()=>({query:async(_query,args)=>{queryEmail=args[0];return queryEmail==='owner@example.com'?[{role:'editor'}]:[]}}),json:(body,status=200)=>Response.json(body,{status})});
 vm.runInContext(transpile('lib/admin.ts'),server);
 assert.equal((await server.requireAdmin()).response.status,401);
 user={email:'owner@example.com',emailVerified:false};assert.equal((await server.requireAdmin()).response.status,403);
 user={email:'client@example.com',emailVerified:true};assert.equal((await server.requireAdmin()).response.status,403);
 user={email:'OWNER@EXAMPLE.COM',emailVerified:true};assert.equal((await server.requireAdmin()).role,'editor');assert.equal(queryEmail,'owner@example.com');
+// Both the account status endpoint and admin guard must reject cached identity snapshots.
+vm.runInContext(transpile('app/api/me/route.ts'),server);
+assert.equal((await (await server.GET()).json()).admin,true);
+const authProxy=vm.createContext({URL,Request,getAuth:()=>({handler:()=>({GET:async request=>{assert.equal(new URL(request.url).searchParams.get('disableCookieCache'),'true');return Response.json(null)}})})});
+vm.runInContext(transpile('app/api/auth/[...path]/route.ts'),authProxy);
+await vm.runInContext("GET(new Request('https://store.example/api/auth/get-session?disableCookieCache=false'),{})",authProxy);
 let exchanges=0;
 const proxy=vm.createContext({NextResponse:{next:()=>({next:true})},getAuth:()=>({middleware:options=>{assert.equal(options.publicRoutes[0],'/');return async()=>{exchanges++;return {exchanged:true}}}})});
 vm.runInContext(transpile('proxy.ts'),proxy);

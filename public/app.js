@@ -222,17 +222,26 @@ function makeOrderMessage(form) { const data = Object.fromEntries(new FormData(f
 function renderAccount() {
   const host = $('#accountContent');
   $('#accountTitle').textContent = me.authenticated ? 'Minha conta' : accountMode === 'signup' ? 'Criar conta' : 'Login';
-  if (!me.authenticated && accountMode === 'reset') {
-    $('#accountTitle').textContent = 'Recuperar senha';
-    host.innerHTML = `<p>Receba um código no seu e-mail e escolha uma nova senha.</p><form id="passwordResetForm" class="admin-form"><label>E-mail<input id="passwordResetEmail" name="email" type="email" autocomplete="email" required></label><button type="button" class="button button-outline full-button" id="sendPasswordResetCode">Enviar código</button><label>Código recebido<input name="otp" inputmode="numeric" autocomplete="one-time-code" required></label><label>Nova senha<input name="password" type="password" autocomplete="new-password" required minlength="8"></label><button type="submit" class="button button-dark full-button">Salvar nova senha</button><button type="button" class="text-button" data-auth-mode="signin">Voltar ao login</button></form><p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>`;
+  if (accountMode === 'reset') {
+    $('#accountTitle').textContent = me.authenticated ? 'Criar ou redefinir senha' : 'Recuperar senha';
+    host.innerHTML = `<p>Receba um código no seu e-mail e escolha uma senha para a loja. Isso não altera a senha da sua conta Google.</p><form id="passwordResetForm" class="admin-form"><label>E-mail<input id="passwordResetEmail" name="email" type="email" autocomplete="email" required ${me.authenticated ? `value="${escapeHtml(me.email)}" readonly` : ''}></label><button type="button" class="button button-outline full-button" id="sendPasswordResetCode">Enviar código</button><label>Código recebido<input name="otp" inputmode="numeric" autocomplete="one-time-code" required></label><label>Nova senha<input name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label><label>Confirmar nova senha<input name="confirmPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label><p>Use de 8 a 128 caracteres. Após salvar, entre novamente com a nova senha.</p><button type="submit" class="button button-dark full-button">Salvar nova senha</button>${me.authenticated ? '<button type="button" class="text-button" id="backToAccount">Voltar à minha conta</button>' : '<button type="button" class="text-button" data-auth-mode="signin">Voltar ao login</button>'}</form><p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>`;
+    return;
+  }
+  if (me.authenticated && accountMode === 'password') {
+    $('#accountTitle').textContent = 'Alterar senha';
+    host.innerHTML = `<p>Altere a senha de acesso à loja. Os outros acessos à sua conta serão encerrados.</p><form id="changePasswordForm" class="admin-form"><label>Senha atual<input name="currentPassword" type="password" autocomplete="current-password" required maxlength="128"></label><label>Nova senha<input name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label><label>Confirmar nova senha<input name="confirmPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label><p>Use de 8 a 128 caracteres e uma senha diferente da atual.</p><button type="submit" class="button button-dark full-button">Salvar nova senha</button><button type="button" class="text-button" id="resetPasswordFromAccount">Criar ou redefinir senha por e-mail</button><button type="button" class="text-button" id="backToAccount">Voltar à minha conta</button></form><p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>`;
     return;
   }
   if (!me.authenticated) {
     host.innerHTML = `<p>${accountMode === 'signup' ? 'Crie sua conta com Google ou cadastre seu e-mail.' : 'Acesse sua conta com Google ou com seu e-mail e senha.'}</p><div class="account-mode-options" role="group" aria-label="Acessar ou criar conta"><button type="button" data-auth-mode="signin" aria-pressed="${accountMode === 'signin'}">Entrar</button><button type="button" data-auth-mode="signup" aria-pressed="${accountMode === 'signup'}">Criar conta</button></div><button type="button" class="button google-login-button full-button" id="googleSignIn"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65Z"/><path fill="#FBBC05" d="M10.53 28.59a14.4 14.4 0 0 1 0-9.18l-7.98-6.19a24 24 0 0 0 0 21.56l7.98-6.19Z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.17 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"/></svg><span>Continuar com Google</span></button><div class="auth-divider"><span>ou use seu e-mail</span></div><form id="accountAuthForm" class="admin-form">${accountMode === 'signup' ? '<label>Nome<input name="name" required autocomplete="name" maxlength="100"></label>' : ''}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Senha<input name="password" type="password" required minlength="8" autocomplete="${accountMode === 'signup' ? 'new-password' : 'current-password'}"></label><p class="form-privacy">Nome e e-mail são usados para sua conta. Ao continuar com Google, o provedor compartilha os dados necessários ao login. <a href="legal/privacidade.html" target="_blank" rel="noopener">Privacidade</a> · <a href="legal/termos.html" target="_blank" rel="noopener">Termos de uso</a>.</p><button class="button button-dark full-button" type="submit">${accountMode === 'signup' ? 'Criar conta' : 'Entrar'}</button>${accountMode === 'signin' ? '<button class="text-button" type="button" id="forgotPassword">Esqueci minha senha</button>' : ''}</form><p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>`;
     return;
   }
-  const verification = !me.emailVerified ? `<form id="verifyEmailForm" class="admin-form"><p>Confirme seu e-mail para ativar sua conta.</p><label>Código de verificação<input name="otp" inputmode="numeric" autocomplete="one-time-code" required></label><button class="button button-dark full-button" type="submit">Verificar e-mail</button><button class="text-button" type="button" id="sendVerificationCode">Enviar código novamente</button><p id="authMessage" role="status"></p></form>` : '';
-  host.innerHTML = `<p>Conectado como <strong>${escapeHtml(me.displayName || me.email)}</strong><br><small>${escapeHtml(me.email)}</small></p>${verification}${me.admin ? '<button class="button button-terracotta full-button" id="openAdminFromAccount">Abrir painel da loja</button>' : me.emailVerified ? '<p role="status">Você está conectado à sua conta.</p>' : ''}<button class="button button-outline full-button account-link" id="signOutButton">Sair da conta</button>`;
+  const verification = !me.emailVerified ? `<form id="verifyEmailForm" class="admin-form"><p>Confirme seu e-mail para ativar sua conta.</p><label>Código de verificação<input name="otp" inputmode="numeric" autocomplete="one-time-code" required></label><button class="button button-dark full-button" type="submit">Verificar e-mail</button><button class="text-button" type="button" id="sendVerificationCode">Enviar código de verificação</button><p id="authMessage" role="status"></p></form>` : '';
+  host.innerHTML = `<p>Conectado como <strong>${escapeHtml(me.displayName || me.email)}</strong><br><small>${escapeHtml(me.email)}</small></p>${verification}${me.admin ? '<button class="button button-terracotta full-button" id="openAdminFromAccount">Abrir painel da loja</button>' : me.emailVerified ? '<p role="status">Você está conectado à sua conta.</p>' : ''}<button type="button" class="button button-outline full-button account-link" id="changePasswordButton">Alterar senha</button><p id="accountMessage" role="status" aria-live="polite"></p><button class="button button-outline full-button account-link" id="signOutButton">Sair da conta</button>`;
+}
+function validateNewPassword(password, confirmation) {
+  if (typeof password !== 'string' || password.length < 8 || password.length > 128) throw new Error('A nova senha deve ter de 8 a 128 caracteres.');
+  if (password !== confirmation) throw new Error('A confirmação da nova senha não confere.');
 }
 async function openAccount() {
   if (window.MANDALARIA_CONFIG.staticMode) {
@@ -348,13 +357,26 @@ document.addEventListener('click', async event => {
     } catch (error) { message.textContent = error.message; button.disabled = false; }
     return;
   }
+  if (target.id === 'changePasswordButton') {
+    target.disabled = true;
+    try {
+      const result = await getAuthClient().listAccounts();
+      if (result.error) throw new Error(result.error.message || 'Não foi possível consultar sua conta.');
+      if (!Array.isArray(result.data)) throw new Error('Não foi possível identificar o tipo de acesso.');
+      accountMode = result.data.some(account => account.providerId === 'credential') ? 'password' : 'reset';
+      renderAccount();
+    } catch (error) { $('#accountMessage').textContent = error.message; target.disabled = false; }
+    return;
+  }
+  if (target.id === 'resetPasswordFromAccount') { accountMode = 'reset'; renderAccount(); return; }
+  if (target.id === 'backToAccount') { accountMode = 'signin'; renderAccount(); return; }
   if (target.id === 'forgotPassword') { accountMode = 'reset'; renderAccount(); return; }
   if (target.id === 'sendPasswordResetCode') {
     const input = $('#passwordResetEmail');
     if (!input.reportValidity()) return;
     target.disabled = true;
     try {
-      const result = await getAuthClient().emailOtp.sendVerificationOtp({ email: input.value.trim(), type: 'forget-password' });
+      const result = await getAuthClient().emailOtp.sendVerificationOtp({ email: me.authenticated ? me.email : input.value.trim(), type: 'forget-password' });
       if (result.error) throw new Error(result.error.message || 'Não foi possível enviar o código.');
       $('#authMessage').textContent = 'Se houver uma conta com esse e-mail, você receberá um código para alterar a senha.';
     } catch (error) { $('#authMessage').textContent = error.message; }
@@ -427,15 +449,33 @@ document.addEventListener('submit', async event => {
     }
     return;
   }
+  if (event.target.id === 'changePasswordForm') {
+    event.preventDefault();
+    const form = event.target, data = Object.fromEntries(new FormData(form).entries()), button = form.querySelector('[type="submit"]');
+    button.disabled = true;
+    try {
+      if (!me.authenticated) throw new Error('Entre na sua conta antes de alterar a senha.');
+      validateNewPassword(data.password, data.confirmPassword);
+      if (data.currentPassword === data.password) throw new Error('Escolha uma senha diferente da atual.');
+      const result = await getAuthClient().changePassword({ currentPassword: data.currentPassword, newPassword: data.password, revokeOtherSessions: true });
+      if (result.error) throw new Error(result.error.message || 'Não foi possível alterar a senha.');
+      accountMode = 'signin'; renderAccount();
+      $('#accountMessage').textContent = 'Senha alterada. Os outros acessos à sua conta foram encerrados.';
+    } catch (error) { $('#authMessage').textContent = error.message; button.disabled = false; }
+    return;
+  }
   if (event.target.id === 'passwordResetForm') {
     event.preventDefault();
     const form = event.target, data = Object.fromEntries(new FormData(form).entries()), button = form.querySelector('[type="submit"]');
     button.disabled = true;
     try {
-      const result = await getAuthClient().emailOtp.resetPassword({ email: data.email.trim(), otp: data.otp.trim(), password: data.password });
+      validateNewPassword(data.password, data.confirmPassword);
+      const result = await getAuthClient().emailOtp.resetPassword({ email: me.authenticated ? me.email : data.email.trim(), otp: data.otp.trim(), password: data.password });
       if (result.error) throw new Error(result.error.message || 'Não foi possível alterar a senha.');
-      accountMode = 'signin'; renderAccount();
-      $('#authMessage').textContent = 'Senha atualizada. Entre com seu e-mail e a nova senha.';
+      await getAuthClient().signOut().catch(() => {});
+      await loadMe(); accountMode = 'signin'; renderAccount();
+      const message = $('#authMessage') || $('#accountMessage');
+      message.textContent = 'Senha atualizada. Entre com seu e-mail e a nova senha.';
     } catch (error) { $('#authMessage').textContent = error.message; button.disabled = false; }
     return;
   }

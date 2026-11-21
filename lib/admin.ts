@@ -2,7 +2,7 @@ import { getAuth } from "./auth";
 import { database, json } from "./neon";
 
 export async function requireAdmin() {
-  const { data: session } = await getAuth().getSession();
+  const { data: session } = await getAuth().getSession({ query: { disableCookieCache: "true" } });
   const user = session?.user;
   if (!user) return { response: json({ error: "Entre na sua conta para continuar." }, 401) };
   if (!user.emailVerified) return { response: json({ error: "Verifique seu e-mail para continuar." }, 403) };
