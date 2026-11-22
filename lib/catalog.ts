@@ -16,6 +16,10 @@ export function mapCategory(row: RecordRow) {
 }
 
 export function mapProduct(row: RecordRow) {
+  const width = row.width_cm == null ? null : Number(row.width_cm);
+  const height = row.height_cm == null ? null : Number(row.height_cm);
+  const autoPreview = Number.isFinite(width) && Number(width)>0 && Number(width)<=9999 && Number.isFinite(height) && Number(height)>0 && Number(height)<=9999 &&
+    typeof row.image_url === "string" && /^\/api\/media\/products\/[0-9a-f-]+\.(jpg|png)$/i.test(row.image_url);
   return {
     id: row.id,
     categoryId: row.category_id,
@@ -24,9 +28,9 @@ export function mapProduct(row: RecordRow) {
     slug: row.slug,
     description: row.description,
     material: row.materials ?? "",
-    widthCm: row.width_cm === null ? null : Number(row.width_cm),
-    heightCm: row.height_cm === null ? null : Number(row.height_cm),
-    depthCm: row.depth_cm === null ? null : Number(row.depth_cm),
+    widthCm: width,
+    heightCm: height,
+    depthCm: row.depth_cm == null ? null : Number(row.depth_cm),
     priceCents: row.price_cents,
     photoOnly: Number(row.price_cents) === 0,
     stockQuantity: row.stock_quantity,
@@ -35,6 +39,7 @@ export function mapProduct(row: RecordRow) {
     featured: row.featured,
     imageUrl: row.image_url ?? "",
     glbUrl: row.glb_url ?? "",
+    previewUrl: !row.glb_url && autoPreview ? `/api/products/${row.id}/preview.glb?v=${encodeURIComponent(String(row.updated_at ?? ""))}` : "",
     usdzUrl: row.usdz_url ?? "",
     demo: false,
     imagePosition: null,

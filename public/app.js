@@ -19,6 +19,7 @@ let currentProduct = null;
 let adminTab = 'products';
 let adminEditing = null;
 let roomPhotoUrl = null;
+let adminPhotoPreviewUrl = null;
 let arPendingReturn = false;
 let arReturnGuardUntil = 0;
 let catalogError = false;
@@ -54,7 +55,8 @@ function displayProduct(item) {
   return { ...item, category: categoryName(item.category), price: item.priceCents / 100, stock: !item.photoOnly && item.priceCents > 0 && (item.stockQuantity > 0 || item.madeToOrder),
     size: parts.length ? `${parts.join(' × ')} cm` : 'A definir',
     badge: item.demo ? 'Demonstração' : item.madeToOrder ? 'Sob encomenda' : item.featured ? 'Destaque' : 'Feito à mão',
-    model: Boolean(item.glbUrl) };
+    model: Boolean(item.glbUrl || item.previewUrl), modelUrl: item.glbUrl || item.previewUrl || '',
+    photoPreview: !item.glbUrl && Boolean(item.previewUrl) };
 }
 async function loadCatalog() {
   try {
@@ -124,7 +126,7 @@ function renderProducts() {
   $('#emptyCatalogMessage').textContent = catalogError ? 'Tente novamente em alguns instantes.' : products.length ? 'Tente outro termo ou ajuste os filtros.' : 'Estamos preparando o catálogo com as peças reais da Mandalaria.';
   $('#productGrid').innerHTML = list.map(item => item.photoOnly
     ? `<article class="product-card photo-only-card"><button type="button" class="product-image real-product-image photo-only-open" data-open-product="${escapeHtml(item.id)}" aria-label="Ampliar foto de ${escapeHtml(item.name)}">${photo(item, 'product-photo')}</button></article>`
-    : `<article class="product-card"><div class="product-image real-product-image"><button type="button" class="product-photo-open" data-open-product="${escapeHtml(item.id)}" aria-label="Ver ${escapeHtml(item.name)}">${photo(item, 'product-photo')}</button><span class="product-badge">${escapeHtml(item.badge)}</span>${item.stock ? `<button class="quick-add" data-add="${escapeHtml(item.id)}" aria-label="Adicionar ${escapeHtml(item.name)} ao carrinho">+</button>` : ''}</div><div class="product-meta"><div><div class="product-category">${escapeHtml(item.category)}</div><div class="product-name">${escapeHtml(item.name)}</div><div class="product-price">${currency(item.price)}</div></div></div><div class="product-actions"><button data-open-product="${escapeHtml(item.id)}">Ver detalhes</button>${item.model ? `<button data-open-3d="${escapeHtml(item.id)}">◈ Ver em 3D</button>` : ''}</div></article>`).join('');
+    : `<article class="product-card"><div class="product-image real-product-image"><button type="button" class="product-photo-open" data-open-product="${escapeHtml(item.id)}" aria-label="Ver ${escapeHtml(item.name)}">${photo(item, 'product-photo')}</button><span class="product-badge">${escapeHtml(item.badge)}</span>${item.stock ? `<button class="quick-add" data-add="${escapeHtml(item.id)}" aria-label="Adicionar ${escapeHtml(item.name)} ao carrinho">+</button>` : ''}</div><div class="product-meta"><div><div class="product-category">${escapeHtml(item.category)}</div><div class="product-name">${escapeHtml(item.name)}</div><div class="product-price">${currency(item.price)}</div></div></div><div class="product-actions"><button data-open-product="${escapeHtml(item.id)}">Ver detalhes</button>${item.model ? `<button data-open-3d="${escapeHtml(item.id)}">Ver no ambiente</button>` : ''}</div></article>`).join('');
   const count = ($('#maxPrice').value !== $('#maxPrice').max ? 1 : 0) + ($('#stockOnly').checked ? 1 : 0);
   $('#activeFilterCount').textContent = count ? `(${count})` : '';
   $('#priceLabel').textContent = currency(Number($('#maxPrice').value));
@@ -189,31 +191,45 @@ function renderCart() {
   $('#cartPaymentNote').textContent = isDemo ? 'Demonstração sem pedido ou cobrança reais.' : (SALES_READY ? 'Pagamento processado pelo Mercado Pago.' : 'Compras reais indisponíveis: dados da loja pendentes.');
   renderRecommendations(entries);
 }
+function productPreview(item, expanded = false) {
+  if (!item.imageUrl && !item.model) return '';
+  return `<section class="model-viewer-wrap"><button type="button" class="model-trigger" id="modelTrigger" aria-controls="modelBox" aria-expanded="${expanded}">Ver no meu ambiente</button><div class="model-box ${expanded ? 'open' : ''}" id="modelBox">${item.model ? `<p class="preview-intro">${item.photoPreview ? 'Simulação ilustrativa feita com a foto e as medidas da peça. A imagem pode incluir fundo e margens.' : 'Veja como a peça pode ficar no seu ambiente.'}</p><model-viewer id="arViewer" src="${escapeHtml(item.modelUrl)}" ${item.imageUrl ? `poster="${escapeHtml(item.imageUrl)}"` : ''} ${item.usdzUrl ? `ios-src="${escapeHtml(item.usdzUrl)}"` : ''} alt="Prévia de ${escapeHtml(item.name)} no ambiente" camera-controls ar ar-modes="webxr scene-viewer quick-look" ar-placement="wall" ar-scale="auto" interaction-prompt="none" shadow-intensity="0.4"></model-viewer><button type="button" class="button button-terracotta full-button" id="arStart" disabled>Preparando visualização...</button><p class="ar-support" id="arSupport" role="status">Aguarde enquanto a prévia é preparada.</p>` : ''}${item.imageUrl ? `<details class="room-preview" ${!item.model ? 'open' : ''}><summary>Usar uma foto do meu ambiente</summary><p>Escolha uma foto e posicione a peça para testar a composição. Você pode arrastar ou usar as setas do teclado. A foto fica apenas no seu aparelho.</p><label class="room-upload">Escolher foto do ambiente<input id="roomPhotoInput" type="file" accept="image/*"></label><div class="room-canvas" id="roomCanvas" hidden><img id="roomImage" alt="Foto do seu ambiente"><img id="roomProduct" tabindex="0" role="img" aria-label="Posicionar produto: use as setas do teclado" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.name)} sobreposta à foto"></div><label class="room-scale" id="roomScaleLabel" hidden>Tamanho na foto<input id="roomScale" type="range" min="15" max="65" value="32"></label></details>` : ''}</div></section>`;
+}
 function openProduct(id, showModel = false) {
   const item = products.find(product => product.id === id); if (!item) return;
   currentProduct = id;
   if (item.photoOnly) {
-    $('#productDetail').innerHTML = `<div class="photo-only-detail">${photo(item, 'detail-photo')}</div>`;
+    $('#productDetail').innerHTML = `<div class="photo-only-detail">${photo(item, 'detail-photo')}</div>${productPreview(item, showModel)}`;
+    if (item.imageUrl || item.model) setupPreview(item.model);
     closeCart(); closeDialogs(); openDialog('#productDialog');
     return;
   }
-  $('#productDetail').innerHTML = `<div class="product-detail-grid"><div class="detail-image real-detail-image">${photo(item, 'detail-photo')}</div><div class="detail-copy"><div class="product-category">${escapeHtml(item.category)} · PEÇA ARTESANAL</div><h2>${escapeHtml(item.name)}</h2><div class="detail-price">${currency(item.price)}</div><p>${escapeHtml(item.description)}</p><ul><li><strong>Dimensões:</strong> ${escapeHtml(item.size)}</li><li><strong>Materiais:</strong> ${escapeHtml(item.material || 'A definir')}</li><li><strong>Produção:</strong> feita à mão</li></ul><div class="detail-actions"><div class="qty-control"><button id="detailDec" aria-label="Diminuir quantidade">−</button><span id="detailQty">1</span><button id="detailInc" aria-label="Aumentar quantidade">+</button></div><button class="button button-dark" id="detailAdd" ${item.stock ? '' : 'disabled'}>${item.stock ? 'Adicionar ao carrinho ↗' : 'Indisponível'}</button></div>${item.model ? `<div class="model-viewer-wrap"><button class="model-trigger" id="modelTrigger">◈ Ver em 3D na parede</button><div class="model-box ${showModel ? 'open' : ''}" id="modelBox"><p class="preview-intro">A visualização depende das medidas e do modelo 3D cadastrados para esta peça.</p><model-viewer id="arViewer" src="${escapeHtml(item.glbUrl)}" ${item.imageUrl ? `poster="${escapeHtml(item.imageUrl)}"` : ''} ${item.usdzUrl ? `ios-src="${escapeHtml(item.usdzUrl)}"` : ''} alt="Modelo 3D de ${escapeHtml(item.name)}" ar ar-modes="scene-viewer quick-look webxr" ar-placement="wall" ar-scale="auto" interaction-prompt="none" shadow-intensity="0.4"></model-viewer><button type="button" class="button button-terracotta full-button" id="arStart" disabled>Carregando visualização...</button><p class="ar-support" id="arSupport">Aguarde o carregamento para verificar a compatibilidade do aparelho.</p>${item.imageUrl ? `<details class="room-preview"><summary>Ver em uma foto do meu ambiente</summary><p>Envie uma foto da parede e arraste a peça para testar a composição. A foto fica apenas no seu aparelho.</p><label class="room-upload">Escolher foto da parede<input id="roomPhotoInput" type="file" accept="image/*"></label><div class="room-canvas" id="roomCanvas" hidden><img id="roomImage" alt="Foto do seu ambiente"><img id="roomProduct" tabindex="0" role="img" aria-label="Posicionar produto: use as setas do teclado" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.name)} sobreposta à foto"></div><label class="room-scale" id="roomScaleLabel" hidden>Tamanho na foto<input id="roomScale" type="range" min="15" max="65" value="32"></label></details>` : ''}</div></div>` : ''}</div></div>`;
-  if (item.model) setupPreview();
+  $('#productDetail').innerHTML = `<div class="product-detail-grid"><div class="detail-image real-detail-image">${photo(item, 'detail-photo')}</div><div class="detail-copy"><div class="product-category">${escapeHtml(item.category)} · PEÇA ARTESANAL</div><h2>${escapeHtml(item.name)}</h2><div class="detail-price">${currency(item.price)}</div><p>${escapeHtml(item.description)}</p><ul><li><strong>Dimensões:</strong> ${escapeHtml(item.size)}</li><li><strong>Materiais:</strong> ${escapeHtml(item.material || 'A definir')}</li><li><strong>Produção:</strong> feita à mão</li></ul><div class="detail-actions"><div class="qty-control"><button id="detailDec" aria-label="Diminuir quantidade">−</button><span id="detailQty">1</span><button id="detailInc" aria-label="Aumentar quantidade">+</button></div><button class="button button-dark" id="detailAdd" ${item.stock ? '' : 'disabled'}>${item.stock ? 'Adicionar ao carrinho ↗' : 'Indisponível'}</button></div>${productPreview(item, showModel)}</div></div>`;
+  if (item.imageUrl || item.model) setupPreview(item.model);
   closeCart(); openDialog('#productDialog');
 }
-function setupPreview() {
-  const viewer = $('#arViewer'), button = $('#arStart'), support = $('#arSupport');
-  const update = () => { const available = Boolean(viewer.canActivateAR); button.disabled = !available; button.textContent = available ? 'Abrir câmera e posicionar na parede ↗' : 'AR indisponível neste aparelho'; support.textContent = available ? 'Aponte a câmera para uma parede bem iluminada e mova o celular devagar.' : 'Use a visualização 3D ou a opção com foto do ambiente.'; };
-  viewer.addEventListener('load', update);
-  viewer.addEventListener('error', () => { button.disabled = true; button.textContent = 'Não foi possível carregar o modelo 3D'; support.textContent = 'Confira o arquivo 3D cadastrado para este produto.'; });
-  viewer.addEventListener('ar-status', event => { if (arPendingReturn && ['not-presenting', 'failed'].includes(event.detail?.status)) { arReturnGuardUntil = Date.now() + 2200; arPendingReturn = false; } });
-  customElements.whenDefined('model-viewer').then(() => setTimeout(update, 100));
+function setupPreview(hasModel = false) {
+  const viewer = hasModel ? $('#arViewer') : null, button = $('#arStart'), support = $('#arSupport');
+  if (viewer) {
+    const update = () => {
+      if (!viewer.loaded) { button.disabled = true; button.textContent = 'Preparando visualização...'; return; }
+      const available = Boolean(viewer.canActivateAR);
+      button.disabled = !available;
+      button.textContent = available ? 'Ver pela câmera' : 'Câmera indisponível neste aparelho';
+      support.textContent = available ? 'Aponte a câmera para uma parede bem iluminada e mova o celular devagar.' : 'Você também pode testar usando uma foto do ambiente abaixo.';
+    };
+    viewer.addEventListener('load', update);
+    viewer.addEventListener('error', () => { button.disabled = true; button.textContent = 'Prévia pela câmera indisponível'; support.textContent = 'Use uma foto do ambiente abaixo para testar a composição.'; });
+    viewer.addEventListener('ar-status', event => { if (arPendingReturn && ['not-presenting', 'failed'].includes(event.detail?.status)) { arReturnGuardUntil = Date.now() + 2200; arPendingReturn = false; } });
+    customElements.whenDefined('model-viewer').then(update);
+    update();
+  }
   const roomProduct = $('#roomProduct'), roomCanvas = $('#roomCanvas');
   if (!roomProduct) return;
   let dragging = false;
   roomProduct.addEventListener('pointerdown', event => { dragging = true; roomProduct.setPointerCapture(event.pointerId); event.preventDefault(); });
   roomProduct.addEventListener('pointermove', event => { if (!dragging) return; const rect = roomCanvas.getBoundingClientRect(); roomProduct.style.left = `${Math.max(0, Math.min(100, (event.clientX - rect.left) / rect.width * 100))}%`; roomProduct.style.top = `${Math.max(0, Math.min(100, (event.clientY - rect.top) / rect.height * 100))}%`; });
-  roomProduct.addEventListener('keydown', event => { const delta = {ArrowLeft:[-2,0],ArrowRight:[2,0],ArrowUp:[0,-2],ArrowDown:[0,2]}[event.key]; if (!delta) return; event.preventDefault(); roomProduct.style.left = `${Math.max(0,Math.min(100,(parseFloat(roomProduct.style.left)||50)+delta[0]))}%`; roomProduct.style.top = `${Math.max(0,Math.min(100,(parseFloat(roomProduct.style.top)||50)+delta[1]))}%`; });
+  roomProduct.addEventListener('keydown', event => { const delta = {ArrowLeft:[-2,0],ArrowRight:[2,0],ArrowUp:[0,-2],ArrowDown:[0,2]}[event.key]; if (!delta) return; event.preventDefault(); roomProduct.style.left = `${Math.max(0,Math.min(100,(Number.isFinite(parseFloat(roomProduct.style.left)) ? parseFloat(roomProduct.style.left) : 50)+delta[0]))}%`; roomProduct.style.top = `${Math.max(0,Math.min(100,(Number.isFinite(parseFloat(roomProduct.style.top)) ? parseFloat(roomProduct.style.top) : 50)+delta[1]))}%`; });
   roomProduct.addEventListener('pointerup', () => { dragging = false; });
   roomProduct.addEventListener('pointercancel', () => { dragging = false; });
 }
@@ -269,6 +285,7 @@ async function openAdmin() {
   } catch (error) { showInfo('Painel indisponível', error.message); }
 }
 function renderAdmin() {
+  clearAdminPhotoPreview();
   document.querySelectorAll('[data-admin-tab]').forEach(button => button.classList.toggle('selected', button.dataset.adminTab === adminTab));
   const host = $('#adminContent');
   if (adminTab === 'products') {
@@ -286,12 +303,14 @@ function renderAdmin() {
     }).join('') || '<p class="admin-empty">Ainda não há pedidos.</p>';
   }
 }
+function clearAdminPhotoPreview() { if (adminPhotoPreviewUrl) URL.revokeObjectURL(adminPhotoPreviewUrl); adminPhotoPreviewUrl = null; }
 function renderAdminForm(id = null) {
+  clearAdminPhotoPreview();
   adminEditing = id;
   const item = id ? adminProducts.find(product => product.id === id) : null;
-  $('#adminFormHost').innerHTML = `<form id="productForm" class="admin-form"><h3>${item ? 'Editar produto' : 'Novo produto'}</h3><p class="admin-price-help">Com preço 0, a vitrine mostra apenas a foto. Informe preço e estoque para preparar a venda; compras reais também dependem da conclusão dos dados legais da loja.</p><div class="form-grid"><label>Nome<input name="name" required maxlength="140" value="${escapeHtml(item?.name || '')}"></label><label>Categoria<select name="categoryId" required><option value="">Selecione</option>${adminCategories.map(cat => `<option value="${escapeHtml(cat.id)}" ${item?.categoryId === cat.id ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`).join('')}</select></label><label>Preço (R$; 0 = apenas foto)<input name="price" type="number" min="0" step="0.01" required value="${item ? item.price.toFixed(2) : ''}"></label><label>Estoque<input name="stockQuantity" type="number" min="0" step="1" required value="${item?.stockQuantity ?? 0}"></label><label>Largura (cm)<input name="widthCm" type="number" min="0.01" step="0.01" value="${item?.widthCm ?? ''}"></label><label>Altura (cm)<input name="heightCm" type="number" min="0.01" step="0.01" value="${item?.heightCm ?? ''}"></label><label>Profundidade (cm)<input name="depthCm" type="number" min="0.01" step="0.01" value="${item?.depthCm ?? ''}"></label><label>Materiais<input name="materials" maxlength="500" value="${escapeHtml(item?.material || '')}"></label><label>Estado<select name="status"><option value="draft" ${item?.status !== 'active' && item?.status !== 'archived' ? 'selected' : ''}>Rascunho</option><option value="active" ${item?.status === 'active' ? 'selected' : ''}>Publicado</option><option value="archived" ${item?.status === 'archived' ? 'selected' : ''}>Arquivado</option></select></label><label>Tipo<select name="madeToOrder"><option value="false" ${!item?.madeToOrder ? 'selected' : ''}>Pronta entrega</option><option value="true" ${item?.madeToOrder ? 'selected' : ''}>Sob encomenda</option></select></label><label>Foto (URL HTTPS, opcional)<input name="imageUrl" type="text" inputmode="url" placeholder="https://..." value="${escapeHtml(item?.imageUrl || '')}"></label><label>Enviar foto (JPG/PNG/WebP, até 10 MB)<input name="imageFile" type="file" accept="image/jpeg,image/png,image/webp"></label><label>Modelo 3D GLB (URL HTTPS, opcional)<input name="glbUrl" type="text" inputmode="url" placeholder="https://..." value="${escapeHtml(item?.glbUrl || '')}"></label><label>Enviar modelo GLB (até 50 MB)<input name="glbFile" type="file" accept=".glb,model/gltf-binary"></label><label>Modelo iPhone USDZ (URL HTTPS, opcional)<input name="usdzUrl" type="text" inputmode="url" placeholder="https://..." value="${escapeHtml(item?.usdzUrl || '')}"></label><label>Enviar modelo USDZ (até 50 MB)<input name="usdzFile" type="file" accept=".usdz,model/vnd.usdz+zip"></label><label>Destaque<select name="featured"><option value="false" ${!item?.featured ? 'selected' : ''}>Não</option><option value="true" ${item?.featured ? 'selected' : ''}>Sim</option></select></label></div><label class="admin-wide">Descrição<textarea name="description" rows="4" maxlength="4000">${escapeHtml(item?.description || '')}</textarea></label><button class="button button-dark" type="submit">Salvar produto</button><button type="button" class="text-button" id="cancelAdminForm">Cancelar</button></form>`;
+  $('#adminFormHost').innerHTML = `<form id="productForm" class="admin-form"><h3>${item ? 'Editar produto' : 'Novo produto'}</h3><p class="admin-price-help">Com preço 0, a vitrine mostra apenas a foto. Informe preço e estoque para preparar a venda; compras reais também dependem da conclusão dos dados legais da loja.</p><div class="form-grid"><label>Nome<input name="name" required maxlength="140" value="${escapeHtml(item?.name || '')}"></label><label>Categoria<select name="categoryId" required><option value="">Selecione</option>${adminCategories.map(cat => `<option value="${escapeHtml(cat.id)}" ${item?.categoryId === cat.id ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`).join('')}</select></label><label>Preço (R$; 0 = apenas foto)<input name="price" type="number" min="0" step="0.01" required value="${item ? item.price.toFixed(2) : ''}"></label><label>Estoque<input name="stockQuantity" type="number" min="0" step="1" required value="${item?.stockQuantity ?? 0}"></label><label>Largura (cm)<input name="widthCm" type="number" min="0.01" step="0.01" value="${item?.widthCm ?? ''}"></label><label>Altura (cm)<input name="heightCm" type="number" min="0.01" step="0.01" value="${item?.heightCm ?? ''}"></label><label>Profundidade (cm)<input name="depthCm" type="number" min="0.01" step="0.01" value="${item?.depthCm ?? ''}"></label><label>Materiais<input name="materials" maxlength="500" value="${escapeHtml(item?.material || '')}"></label><label>Estado<select name="status"><option value="draft" ${item?.status !== 'active' && item?.status !== 'archived' ? 'selected' : ''}>Rascunho</option><option value="active" ${item?.status === 'active' ? 'selected' : ''}>Publicado</option><option value="archived" ${item?.status === 'archived' ? 'selected' : ''}>Arquivado</option></select></label><label>Tipo<select name="madeToOrder"><option value="false" ${!item?.madeToOrder ? 'selected' : ''}>Pronta entrega</option><option value="true" ${item?.madeToOrder ? 'selected' : ''}>Sob encomenda</option></select></label><fieldset class="product-photo-field"><legend>Foto do produto</legend><img id="adminPhotoPreview" class="admin-photo-preview" ${item?.imageUrl ? `src="${escapeHtml(item.imageUrl)}"` : 'hidden'} alt="Foto do produto"><label>Escolher foto<input name="imageFile" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="adminPhotoHelp adminPhotoMessage"></label><p id="adminPhotoHelp">Envie uma foto de até 10 MB. Com largura e altura preenchidas, a prévia pela câmera é preparada automaticamente.</p><p id="adminPhotoMessage" role="status"></p></fieldset><label>Destaque<select name="featured"><option value="false" ${!item?.featured ? 'selected' : ''}>Não</option><option value="true" ${item?.featured ? 'selected' : ''}>Sim</option></select></label></div><label class="admin-wide">Descrição<textarea name="description" rows="4" maxlength="4000">${escapeHtml(item?.description || '')}</textarea></label><button class="button button-dark" type="submit">Salvar produto</button><button type="button" class="text-button" id="cancelAdminForm">Cancelar</button></form>`;
 }
-async function refreshAdminAndCatalog() { const data = await api('/api/admin/catalog'); adminProducts = data.products.map(displayProduct); adminCategories = data.categories; await loadCatalog(); if (adminTab === 'orders') { const orders = await api('/api/admin/orders'); adminOrders = orders.orders; } renderAdmin(); }
+async function refreshAdminAndCatalog() { clearAdminPhotoPreview(); const data = await api('/api/admin/catalog'); adminProducts = data.products.map(displayProduct); adminCategories = data.categories; await loadCatalog(); if (adminTab === 'orders') { const orders = await api('/api/admin/orders'); adminOrders = orders.orders; } renderAdmin(); }
 async function uploadMedia(file) {
   const form = new FormData(); form.append('file', file);
   const response = await fetch('/api/media', { method: 'POST', credentials: 'same-origin', body: form });
@@ -299,12 +318,27 @@ async function uploadMedia(file) {
   if (!response.ok) throw new Error(result.error || 'Não foi possível enviar o arquivo.');
   return result.url;
 }
+async function prepareProductPhoto(file) {
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) throw new Error('Escolha uma foto JPG, PNG ou WebP de até 10 MB.');
+  if (file.type !== 'image/webp') return file;
+  const bitmap = await createImageBitmap(file);
+  try {
+    const ratio = Math.min(1, 1536 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width * ratio)); canvas.height = Math.max(1, Math.round(bitmap.height * ratio));
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Não foi possível preparar a foto. Tente outra imagem.');
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('Não foi possível preparar a foto. Tente outra imagem.');
+    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.png', {type:'image/png'});
+  } finally { bitmap.close(); }
+}
 async function submitProduct(form) {
   const data = Object.fromEntries(new FormData(form).entries());
-  const fileOrUrl = async (field, fileField) => data[fileField]?.size ? uploadMedia(data[fileField]) : data[field];
-  const [imageUrl, glbUrl, usdzUrl] = await Promise.all([
-    fileOrUrl('imageUrl', 'imageFile'), fileOrUrl('glbUrl', 'glbFile'), fileOrUrl('usdzUrl', 'usdzFile'),
-  ]);
+  const existing = adminProducts.find(item => item.id === adminEditing);
+  const imageUrl = data.imageFile?.size ? await uploadMedia(await prepareProductPhoto(data.imageFile)) : existing?.imageUrl || '';
+  const glbUrl = existing?.glbUrl || '', usdzUrl = existing?.usdzUrl || '';
   const priceCents = Math.round(Number(data.price) * 100);
   const body = { id: adminEditing, name: data.name, categoryId: data.categoryId, priceCents,
     stockQuantity: Number(data.stockQuantity), widthCm: data.widthCm, heightCm: data.heightCm,
@@ -340,7 +374,7 @@ document.addEventListener('click', async event => {
   if (target.id === 'detailInc') { const item = products.find(product => product.id === currentProduct); if (item) $('#detailQty').textContent = Math.min(quantityLimit(item), Number($('#detailQty').textContent) + 1); return; }
   if (target.id === 'detailDec') { $('#detailQty').textContent = Math.max(1, Number($('#detailQty').textContent) - 1); return; }
   if (target.id === 'detailAdd') { const qty = Number($('#detailQty').textContent); closeDialogs(); addToCart(currentProduct, qty); return; }
-  if (target.id === 'modelTrigger') { $('#modelBox').classList.toggle('open'); return; }
+  if (target.id === 'modelTrigger') { const open = $('#modelBox').classList.toggle('open'); target.setAttribute('aria-expanded', String(open)); return; }
   if (target.id === 'arStart') { const viewer = $('#arViewer'); if (viewer?.canActivateAR) { arPendingReturn = true; arReturnGuardUntil = Date.now() + 2200; Promise.resolve(viewer.activateAR()).catch(() => { arPendingReturn = false; showInfo('AR indisponível', 'Não foi possível abrir a câmera neste aparelho.'); }); } return; }
   if (target.id === 'openAdminFromAccount') { await openAdmin(); return; }
   if (target.dataset.authMode) { accountMode = target.dataset.authMode === 'signup' ? 'signup' : 'signin'; renderAccount(); return; }
@@ -419,10 +453,21 @@ document.addEventListener('click', async event => {
   if (target.dataset.categoryDelete) { const item = adminCategories.find(cat => cat.id === target.dataset.categoryDelete); if (item && confirm(`Excluir a categoria ${item.name}?`)) { try { await mutate('/api/admin/categories', 'DELETE', { id: item.id }); activeCategory = 'Todos'; await refreshAdminAndCatalog(); } catch (error) { showInfo('Não foi possível excluir', error.message); } } return; }
   if (target.id === 'demoBackToCart') { closeDialogs(); openCart(); return; }
   if (target.id === 'finishDemoOrder') { cart = {}; saveCart(); closeDialogs(); showInfo('Teste concluído!', 'Você testou a escolha de produtos e a finalização do carrinho. Nenhum pedido foi enviado e nenhum pagamento foi cobrado. Continue explorando a loja.'); return; }
-  if (target.id === 'cancelAdminForm') { $('#adminFormHost').innerHTML = ''; return; }
+  if (target.id === 'cancelAdminForm') { clearAdminPhotoPreview(); $('#adminFormHost').innerHTML = ''; return; }
 });
 document.addEventListener('keydown', event => { if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-open-product][role="button"]')) { event.preventDefault(); openProduct(event.target.dataset.openProduct); } });
 document.addEventListener('change', event => { if (event.target.id !== 'roomPhotoInput') return; const file = event.target.files?.[0]; if (!file || !file.type.startsWith('image/')) return; if (roomPhotoUrl) URL.revokeObjectURL(roomPhotoUrl); roomPhotoUrl = URL.createObjectURL(file); $('#roomImage').src = roomPhotoUrl; $('#roomCanvas').hidden = false; $('#roomScaleLabel').hidden = false; });
+document.addEventListener('change', event => {
+  if (event.target.name !== 'imageFile') return;
+  const file = event.target.files?.[0];
+  clearAdminPhotoPreview();
+  const preview = $('#adminPhotoPreview'), message = $('#adminPhotoMessage');
+  if (!file) { const previous = adminProducts.find(item => item.id === adminEditing)?.imageUrl; if (previous) preview.src = previous; preview.hidden = !previous; message.textContent = ''; return; }
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) { event.target.value = ''; const previous = adminProducts.find(item => item.id === adminEditing)?.imageUrl; if (previous) preview.src = previous; preview.hidden = !previous; message.textContent = 'Escolha uma foto JPG, PNG ou WebP de até 10 MB.'; return; }
+  adminPhotoPreviewUrl = URL.createObjectURL(file); preview.src = adminPhotoPreviewUrl; preview.hidden = false;
+  message.textContent = 'Foto selecionada. Salve o produto para publicar a alteração.';
+});
+$('#adminDialog').addEventListener('close', clearAdminPhotoPreview);
 document.addEventListener('input', event => { if (event.target.id === 'roomScale') $('#roomProduct').style.width = `${event.target.value}%`; });
 $('#productDialog').addEventListener('close', () => { if (roomPhotoUrl) URL.revokeObjectURL(roomPhotoUrl); roomPhotoUrl = null; });
 document.addEventListener('visibilitychange', () => { if (document.hidden || !arPendingReturn) return; arPendingReturn = false; arReturnGuardUntil = Date.now() + 2200; if (!$('#productDialog').open && currentProduct) openDialog('#productDialog'); });

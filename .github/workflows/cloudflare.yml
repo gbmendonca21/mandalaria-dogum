@@ -38,7 +38,7 @@ jobs:
         run: npm run check:media
 
       - name: Check cart and security boundaries
-        run: npm run check:demo && npm run check:security
+        run: npm run check:demo && npm run check:security && npm run check:preview
 
       - name: Audit dependencies
         run: npm audit --audit-level=moderate

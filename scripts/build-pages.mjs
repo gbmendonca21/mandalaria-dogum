@@ -18,8 +18,8 @@ if (!Array.isArray(catalog.categories) || !Array.isArray(catalog.products)) {
 }
 // O Pages não executa /api/media: as fotos do Neon continuam servidas pelo Worker.
 for (const product of catalog.products) {
-  for (const field of ["imageUrl", "glbUrl", "usdzUrl"]) {
-    if (typeof product[field] === "string" && product[field].startsWith("/api/media/")) {
+  for (const field of ["imageUrl", "glbUrl", "usdzUrl", "previewUrl"]) {
+    if (typeof product[field] === "string" && product[field].startsWith("/api/")) {
       product[field] = new URL(product[field], catalogUrl).href;
     }
   }

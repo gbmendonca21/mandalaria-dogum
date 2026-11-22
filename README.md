@@ -8,7 +8,7 @@ A prévia em <https://gbmendonca21.github.io/mandalaria-dogum/> é gerada por `n
 
 - Catálogo público vindo do Neon (`GET /api/catalog`), com busca, categorias, filtros, detalhes, carrinho local e exibição opcional de modelos GLB/USDZ e AR.
 - Cadastro por e-mail e senha, login com Google, recuperação de senha por código e verificação de e-mail por Neon Auth. O painel exige uma função na tabela `admin_memberships` e segue a política de verificação da associação.
-- Gestão de produtos e categorias, uploads de fotos (JPG/PNG/WebP) e modelos GLB/USDZ para o bucket privado `mandalaria-media` no Neon, e atualização do andamento de pedidos.
+- Gestão de produtos e categorias, envio simplificado de uma foto para o bucket privado `mandalaria-media` no Neon, prévia automática no ambiente e atualização do andamento de pedidos.
 - Checkout Pro do Mercado Pago. O servidor recalcula preços usando o Neon, cria pedidos e preferências, e valida a assinatura de webhooks. Pagamentos aprovados sem estoque suficiente são reembolsados automaticamente.
 - Produtos começam como rascunho. Apenas os publicados aparecem na vitrine; produtos sem foto mostram um espaço neutro com o símbolo da marca.
 - Formulário de encomenda personalizada pelo WhatsApp.
@@ -84,3 +84,14 @@ A opção **Minha conta → Alterar senha** está disponível a todos os usuári
 A leitura de sessão em `/api/me`, nas permissões administrativas e em `/api/auth/get-session` força revalidação no Neon com `disableCookieCache=true`. Isso evita que o snapshot assinado de sessão do SDK mantenha acesso após revogação. Não basta verificar apenas a validade da assinatura do cookie em operações autenticadas.
 
 A migração `neon/003_admin_verification_policy.sql` adiciona `email_verification_required=true` por padrão. Uma dispensa individual só é permitida para uma associação `owner`, mediante solicitação expressa da responsável. A migração `neon/004_admin_verification_account_binding.sql` vincula a dispensa ao `verification_user_id` da conta existente, evitando sua herança por outro cadastro com o mesmo e-mail. Isso não marca o e-mail como verificado no provedor e não dispensa autenticação por senha ou sessão válida. A senha da conta nunca é colocada no código ou no Git.
+
+
+## Cadastro simplificado e prévia no ambiente
+
+O cadastro mostra um único campo **Foto do produto**, com miniatura antes de salvar. URLs de fotos, arquivos GLB e arquivos USDZ não precisam ser preenchidos. Ao editar sem escolher outra foto, o cadastro preserva a imagem e os modelos antigos. Fotos WebP novas são preparadas como PNG no navegador para compatibilidade da prévia, com resolução limitada; as fotos JPEG/PNG existentes não são alteradas.
+
+A vitrine oferece **Ver no meu ambiente**, inclusive para fotos ainda sem preço. A composição em uma foto do ambiente funciona sem medidas e permanece local no aparelho. Para uma foto JPEG/PNG no bucket e com largura e altura informadas, o catálogo fornece `previewUrl`: `/api/products/{id}/preview.glb`. A rota prepara automaticamente uma superfície com a fotografia, usando centímetros convertidos para metros; não reconstrói o volume ou remove o fundo da peça. O texto da prévia a identifica como ilustrativa. Não são inventadas medidas para as mandalas já cadastradas.
+
+A geração pública só lê produtos publicados em categorias visíveis e fotos da própria loja. URLs externas não são buscadas pelo servidor. O modelo público permite carregamento em outras origens para a prévia estática/visualizadores; nenhuma API administrativa recebe essa permissão. Modelos GLB/USDZ já cadastrados têm prioridade e são preservados. Em iPhones compatíveis, o Model Viewer prepara o USDZ quando não há um arquivo específico; em aparelhos sem AR há a alternativa com foto do ambiente.
+
+Validação adicional: `npm run check:preview` verifica a preservação de mídias, o formulário sem campos técnicos, a geração automática, os limites de visibilidade e a estrutura da prévia. A implementação segue a [especificação glTF 2.0](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html) e o comportamento de AR documentado pelo [Model Viewer](https://modelviewer.dev/examples/augmentedreality/).

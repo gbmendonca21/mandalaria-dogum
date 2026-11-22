@@ -20,7 +20,8 @@
     "check:auth": "node scripts/build-auth-client.mjs && node scripts/checks/auth-bundle.mjs && node scripts/checks/auth-flow.mjs",
     "check:media": "node scripts/checks/media.mjs",
     "check:security": "node scripts/build-legal-pages.mjs && node scripts/checks/security.mjs",
-    "check:secrets": "node scripts/checks/public-secrets.mjs"
+    "check:secrets": "node scripts/checks/public-secrets.mjs",
+    "check:preview": "node scripts/checks/product-preview.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
