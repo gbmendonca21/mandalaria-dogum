@@ -125,7 +125,7 @@ button,input,select,textarea,summary{min-height:32px}input,select,textarea{borde
 @media(max-width:600px){.storage-notice{align-items:stretch;gap:12px;padding:16px;flex-direction:column;max-height:45vh;overflow:auto}.storage-notice .button{min-height:40px}.legal-header{flex-direction:column;gap:8px}.legal-content th,.legal-content td{padding:6px;font-size:12px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
-.category-card>span:last-child{background:#29251e;padding:12px;border-radius:3px}.category-card small{font-size:11px}.hero-copy{background:#f8f5ee;box-shadow:0 0 0 16px #f8f5ee;border-radius:3px}.hero-side{background:#f8f5ee;padding:8px}
+.category-card>span:last-child{background:#29251e;padding:12px;border-radius:3px}.category-card small{font-size:11px}.hero-side{background:#f8f5ee;padding:8px}
 
 .product-photo-field{grid-column:1/-1;border:1px solid var(--line);margin:8px 0;padding:16px;min-width:0}.product-photo-field legend{font-size:14px;font-weight:700;padding:0 6px}.admin-form .product-photo-field label{font-size:14px}.admin-form .product-photo-field p{font-size:12px;line-height:1.6;margin:10px 0 0}.admin-photo-preview{display:block;max-height:220px;width:auto;max-width:100%;object-fit:contain;margin-bottom:12px;border-radius:3px}.product-photo-field input[type=file]{width:100%;min-width:0;background:var(--paper);padding:12px}.photo-only-detail+.model-viewer-wrap{padding:18px}.room-preview[open] summary{margin-bottom:12px}
 
