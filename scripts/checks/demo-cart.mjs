@@ -43,6 +43,12 @@ assert.equal(mixed.products.length, 7);
 assert.equal(mixed.products.filter(item => item.category === 'Mandalas').length, 1);
 assert.equal(mixed.products.find(item => item.id === 'real-product').photoOnly, true);
 assert.equal(mixed.categories.length, 4);
+environment.DEMO_CATALOG='false';
+const realOnly=await dbContext.getCatalog();assert.equal(realOnly.demo,false);assert.equal(realOnly.products.length,1);assert.equal(realOnly.products[0].id,'real-product');
+assert.ok(realOnly.products.every(item=>item.demo===false));
+assert.doesNotMatch(read('legacy-index.html'),/id="catalogNotice"/);
+assert.doesNotMatch(read('public/app.js'),/Mandalas com fotos reais\. As demais peças/);
+environment.DEMO_CATALOG='true';
 
 
 let databaseTouched = false, paymentTouched = false;
@@ -65,6 +71,7 @@ assert.equal(paymentTouched, false);
 const appSource = read('public/app.js').replace(/renderProducts\(\); renderCart\(\);\nPromise\.all\(\[loadCatalog\(\), loadMe\(\)\]\)[\s\S]*$/, '');
 const elements = new Map(), handlers = new Map(), storage = new Map(), requests = [];
 let currentCatalog = catalog;
+const categoryCards = catalog.categories.map(category => ({dataset:{category:category.name},art:{style:{}},querySelector(){return this.art}}));
 function element(selector) {
   if (!elements.has(selector)) elements.set(selector, {
     textContent: '', innerHTML: '', style: {}, value: '', max: '300', checked: false, open: false, hidden: false, listeners: new Map(),
@@ -78,7 +85,7 @@ function element(selector) {
 const app = vm.createContext({
   window: { MANDALARIA_CONFIG: { whatsapp: '5513981196066', whatsappVerified: true, businessVerified: false, salesReady: false } },
   document: { body: { style: {} }, querySelector: element,
-    querySelectorAll: selector => selector === 'dialog[open]' ? [...elements.values()].filter(item => item.open) : selector.startsWith('main,') ? [element('main'),element('footer')] : [],
+    querySelectorAll: selector => selector === '.category-card[data-category]' ? categoryCards : selector === 'dialog[open]' ? [...elements.values()].filter(item => item.open) : selector.startsWith('main,') ? [element('main'),element('footer')] : [],
     addEventListener(name, callback) { handlers.set(name, [...handlers.get(name) || [], callback]); },
   },
   localStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) },
@@ -106,7 +113,8 @@ assert.equal(app.document.activeElement,element('#cartDrawer [data-close]'));
 for(const handler of handlers.get('keydown')) handler({key:'Escape',target:{matches:()=>false},preventDefault(){}});
 assert.equal(element('main').inert,false);
 assert.equal(element('#cartDrawer').inert,true);
-assert.equal(element('#catalogNotice').hidden, false);
+assert.equal(run('demoCatalog'), true);
+assert.ok(categoryCards.every(card=>card.art.style.backgroundImage==='none'),'Exemplos não podem ilustrar categorias');
 assert.match(element('#productGrid').innerHTML, /Demonstração/);
 for (const category of catalog.categories) {
   run(`activeCategory = ${JSON.stringify(category.name)}`);
@@ -156,7 +164,8 @@ assert.equal(element('#cartRecommendations').hidden, true);
 currentCatalog = { demo: false, categories: [{ name: 'Mandalas' }], products: [{ ...catalog.products[0], id: 'real-one', demo: false }] };
 await run('loadCatalog()');
 assert.equal(run('Object.keys(cart).length'), 0);
-assert.equal(element('#catalogNotice').hidden, true);
+assert.equal(run('demoCatalog'), false);
+assert.ok(categoryCards.find(card=>card.dataset.category==='Mandalas').art.style.backgroundImage.includes(currentCatalog.products[0].imageUrl));
 run("addToCart('real-one'); openCheckout()");
 assert.equal(element('#checkoutDialog').open, false);
 assert.equal(element('#infoTitle').textContent, 'Loja em preparação');

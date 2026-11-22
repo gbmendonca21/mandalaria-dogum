@@ -64,13 +64,14 @@ async function loadCatalog() {
     categories = [...new Set(data.categories.map(item => categoryName(item.name)))];
     demoCatalog = data.demo === true;
     products = data.products.map(displayProduct);
-    const realMandala = products.find(item => !item.demo && item.category === 'Mandalas' && item.imageUrl);
-    const categoryArt = $('.cat-mandalas .category-art');
-    if (realMandala && categoryArt) {
-      categoryArt.style.backgroundImage = `url(${JSON.stringify(realMandala.imageUrl)})`;
-      categoryArt.style.backgroundSize = 'cover';
-      categoryArt.style.backgroundPosition = 'center 55%';
-    }
+    document.querySelectorAll('.category-card[data-category]').forEach(card => {
+      const art = card.querySelector('.category-art');
+      if (!art) return;
+      const realProduct = products.find(item => !item.demo && item.category === categoryName(card.dataset.category) && item.imageUrl);
+      art.style.backgroundImage = realProduct ? `url(${JSON.stringify(realProduct.imageUrl)})` : 'none';
+      art.style.backgroundSize = 'cover';
+      art.style.backgroundPosition = 'center 55%';
+    });
     cart = Object.fromEntries(Object.entries(cart).filter(([id, qty]) => products.some(item => item.id === id) && Number.isSafeInteger(qty) && qty > 0));
     try { localStorage.setItem(STORAGE_CART, JSON.stringify(cart)); } catch { /* O carrinho continua disponível nesta sessão. */ }
     if (activeCategory !== 'Todos' && !categories.includes(activeCategory)) activeCategory = 'Todos';
@@ -116,9 +117,6 @@ function photo(item, className) {
 }
 function renderProducts() {
   renderCategories();
-  const notice = $('#catalogNotice');
-  notice.hidden = !demoCatalog && (products.length > 0 || catalogError);
-  notice.textContent = demoCatalog ? (products.some(item => !item.demo) ? 'Mandalas com fotos reais. As demais peças são exemplos fictícios para testar a loja sem pagamentos.' : 'Catálogo de demonstração: produtos, imagens e preços fictícios. Teste o carrinho sem realizar pagamentos.') : 'O catálogo da loja está sendo preparado. Novos produtos aparecerão aqui quando forem publicados.';
   const list = filteredProducts();
   $('#resultsCount').textContent = `${list.length} ${list.length === 1 ? 'peça encontrada' : 'peças encontradas'}` + (searchTerm ? ` para “${searchTerm}”` : '');
   $('#noResults').hidden = list.length > 0;

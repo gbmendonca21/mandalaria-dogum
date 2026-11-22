@@ -16,6 +16,12 @@ const catalog = await response.json();
 if (!Array.isArray(catalog.categories) || !Array.isArray(catalog.products)) {
   throw new Error("The public catalog response has an unexpected shape.");
 }
+// Static publication is real-only by default, including snapshots of an older API deployment.
+if (process.env.DEMO_CATALOG !== "true") {
+  catalog.products = catalog.products.filter(product => !product.demo && !String(product.id).startsWith("demo-"));
+  catalog.categories = catalog.categories.filter(category => !String(category.id).startsWith("demo-"));
+  catalog.demo = false;
+}
 // O Pages não executa /api/media: as fotos do Neon continuam servidas pelo Worker.
 for (const product of catalog.products) {
   for (const field of ["imageUrl", "glbUrl", "usdzUrl", "previewUrl"]) {
