@@ -97,3 +97,9 @@ A geração pública só lê produtos publicados em categorias visíveis e fotos
 Validação adicional: `npm run check:preview` verifica a preservação de mídias, o formulário sem campos técnicos, a geração automática, os limites de visibilidade e a estrutura da prévia. A implementação segue a [especificação glTF 2.0](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html) e o comportamento de AR documentado pelo [Model Viewer](https://modelviewer.dev/examples/augmentedreality/).
 
 As categorias usam somente fotos reais de produtos cadastrados. Sem uma foto real para a categoria, o cartão mantém nome e fundo neutro. O aviso de demonstração foi retirado da vitrine; as seis fotografias de mandalas permanecem publicadas sem preços inventados. A prévia Pages também remove exemplos por padrão, inclusive ao ler um snapshot antigo da API.
+
+### Categorias na vitrine
+
+O carrossel usa todas as categorias visíveis do catálogo, inclusive as que ainda não têm produtos. No painel, em **Categorias → Editar**, o campo **Texto acima do nome** controla a frase do cartão; vazio, exibe somente o número. A capa usa uma foto real de produto da categoria, quando disponível. Novas categorias entram ao final por padrão. Ordem e visibilidade ficam nas opções adicionais do formulário.
+
+A migração `neon/006_category_card_descriptions.sql` transfere uma única vez os textos antigos para os cadastros sem descrição. Execute-a somente na atualização inicial, para preservar os campos que forem apagados depois. `npm run check:categories` verifica os cartões dinâmicos, a edição, a navegação e a preservação de ordem e visibilidade.

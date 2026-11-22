@@ -21,7 +21,8 @@
     "check:media": "node scripts/checks/media.mjs",
     "check:security": "node scripts/build-legal-pages.mjs && node scripts/checks/security.mjs",
     "check:secrets": "node scripts/checks/public-secrets.mjs",
-    "check:preview": "node scripts/checks/product-preview.mjs"
+    "check:preview": "node scripts/checks/product-preview.mjs",
+    "check:categories": "node scripts/checks/categories.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

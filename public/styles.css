@@ -130,3 +130,22 @@ button,input,select,textarea,summary{min-height:32px}input,select,textarea{borde
 .product-photo-field{grid-column:1/-1;border:1px solid var(--line);margin:8px 0;padding:16px;min-width:0}.product-photo-field legend{font-size:14px;font-weight:700;padding:0 6px}.admin-form .product-photo-field label{font-size:14px}.admin-form .product-photo-field p{font-size:12px;line-height:1.6;margin:10px 0 0}.admin-photo-preview{display:block;max-height:220px;width:auto;max-width:100%;object-fit:contain;margin-bottom:12px;border-radius:3px}.product-photo-field input[type=file]{width:100%;min-width:0;background:var(--paper);padding:12px}.photo-only-detail+.model-viewer-wrap{padding:18px}.room-preview[open] summary{margin-bottom:12px}
 
 .product-image::after{pointer-events:none}
+
+/* Categorias cadastradas no painel, sem limite de quatro cartões. */
+.category-cards{display:grid;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:calc((100% - 54px)/4);overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:thin;scroll-padding-inline:0;padding-bottom:8px}
+.category-card{min-width:0;scroll-snap-align:start}
+.category-card:focus-visible{outline-offset:-4px}
+.category-card .category-art{width:100%;height:100%;object-fit:cover;object-position:center 55%}
+.category-card small{text-transform:uppercase;overflow-wrap:anywhere}
+.category-card strong{overflow-wrap:anywhere}
+.category-carousel-controls{display:flex;gap:8px;align-self:flex-end}
+.category-carousel-controls[hidden]{display:none}
+.category-carousel-controls button{width:44px;height:44px;border:1px solid var(--ink);border-radius:50%;background:transparent;color:var(--ink);font-size:24px;cursor:pointer}
+.category-carousel-controls button:disabled{opacity:.35;cursor:default}
+#categoryCarouselMessage:empty{display:none}
+.category-options{margin-bottom:18px}
+.category-options summary{cursor:pointer;padding:8px 0;font-weight:700}
+.category-options .form-grid{padding-top:10px}
+@media(max-width:760px){.category-cards{grid-template-columns:none;grid-auto-columns:calc((100% - 10px)/2)}}
+@media(max-width:500px){.category-cards{grid-auto-columns:100%}.categories-section .section-top{gap:12px;align-items:flex-end}.category-carousel-controls{gap:5px}.category-carousel-controls button{width:38px;height:38px;flex-shrink:0}}
+@media(prefers-reduced-motion:reduce){.category-card .category-art{transition:none}}

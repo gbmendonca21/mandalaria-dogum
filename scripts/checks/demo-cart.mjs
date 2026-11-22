@@ -71,7 +71,6 @@ assert.equal(paymentTouched, false);
 const appSource = read('public/app.js').replace(/renderProducts\(\); renderCart\(\);\nPromise\.all\(\[loadCatalog\(\), loadMe\(\)\]\)[\s\S]*$/, '');
 const elements = new Map(), handlers = new Map(), storage = new Map(), requests = [];
 let currentCatalog = catalog;
-const categoryCards = catalog.categories.map(category => ({dataset:{category:category.name},art:{style:{}},querySelector(){return this.art}}));
 function element(selector) {
   if (!elements.has(selector)) elements.set(selector, {
     textContent: '', innerHTML: '', style: {}, value: '', max: '300', checked: false, open: false, hidden: false, listeners: new Map(),
@@ -85,7 +84,7 @@ function element(selector) {
 const app = vm.createContext({
   window: { MANDALARIA_CONFIG: { whatsapp: '5513981196066', whatsappVerified: true, businessVerified: false, salesReady: false } },
   document: { body: { style: {} }, querySelector: element,
-    querySelectorAll: selector => selector === '.category-card[data-category]' ? categoryCards : selector === 'dialog[open]' ? [...elements.values()].filter(item => item.open) : selector.startsWith('main,') ? [element('main'),element('footer')] : [],
+    querySelectorAll: selector => selector === 'dialog[open]' ? [...elements.values()].filter(item => item.open) : selector.startsWith('main,') ? [element('main'),element('footer')] : [],
     addEventListener(name, callback) { handlers.set(name, [...handlers.get(name) || [], callback]); },
   },
   localStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) },
@@ -114,7 +113,7 @@ for(const handler of handlers.get('keydown')) handler({key:'Escape',target:{matc
 assert.equal(element('main').inert,false);
 assert.equal(element('#cartDrawer').inert,true);
 assert.equal(run('demoCatalog'), true);
-assert.ok(categoryCards.every(card=>card.art.style.backgroundImage==='none'),'Exemplos não podem ilustrar categorias');
+assert.doesNotMatch(element('#categoryCarousel').innerHTML, /<img/, 'Exemplos não podem ilustrar categorias');
 assert.match(element('#productGrid').innerHTML, /Demonstração/);
 for (const category of catalog.categories) {
   run(`activeCategory = ${JSON.stringify(category.name)}`);
@@ -165,7 +164,7 @@ currentCatalog = { demo: false, categories: [{ name: 'Mandalas' }], products: [{
 await run('loadCatalog()');
 assert.equal(run('Object.keys(cart).length'), 0);
 assert.equal(run('demoCatalog'), false);
-assert.ok(categoryCards.find(card=>card.dataset.category==='Mandalas').art.style.backgroundImage.includes(currentCatalog.products[0].imageUrl));
+assert.ok(element('#categoryCarousel').innerHTML.includes(currentCatalog.products[0].imageUrl));
 run("addToCart('real-one'); openCheckout()");
 assert.equal(element('#checkoutDialog').open, false);
 assert.equal(element('#infoTitle').textContent, 'Loja em preparação');
@@ -179,5 +178,21 @@ assert.equal(run('Object.keys(cart).length'), 0);
 run("openProduct('photo-only-real')");
 assert.match(element('#productDetail').innerHTML, /photo-only-detail/);
 assert.doesNotMatch(element('#productDetail').innerHTML, /detailAdd|detail-price/);
+// Novas categorias aparecem mesmo sem produtos; ocultar, renomear e excluir refletem no mesmo carregamento.
+currentCatalog.categories = [
+  ...currentCatalog.categories,
+  ...Array.from({ length: 4 }, (_, index) => ({ id: `extra-${index}`, name: `Extra ${index}`, description: `Frase ${index}`, active: true })),
+  { id: 'hidden', name: 'Categoria oculta', active: false },
+];
+await run('loadCatalog()');
+assert.equal((element('#categoryCarousel').innerHTML.match(/class="category-card"/g) || []).length, 5);
+assert.match(element('#categoryCarousel').innerHTML, /Extra 3/);
+assert.doesNotMatch(element('#categoryCarousel').innerHTML, /Categoria oculta/);
+assert.match(element('#categoryTabs').innerHTML, /Extra 3/);
+currentCatalog.categories = [{ id: 'extra-3', name: 'Nome atualizado', description: 'Nova frase', active: true }];
+await run('loadCatalog()');
+assert.match(element('#categoryCarousel').innerHTML, /Nome atualizado/);
+assert.match(element('#categoryCarousel').innerHTML, /Nova frase/);
+assert.doesNotMatch(element('#categoryCarousel').innerHTML, /Extra 3|Mandalas/);
 console.log('PASS: fotos sem preço aparecem sem compra; ampliação da foto; exemplos da mesma categoria removidos.');
 console.log('PASS: 8 exemplos/4 categorias; filtros e busca; carrinho, quantidades e remoção; sugestões complementares sem duplicação; simulação sem cobrança; bloqueio servidor; substituição pelo catálogo real.');

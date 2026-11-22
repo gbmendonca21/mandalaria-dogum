@@ -8,6 +8,7 @@ const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } };
 let products = [];
 let categories = [];
+let storefrontCategories = [];
 let adminProducts = [];
 let adminCategories = [];
 let adminOrders = [];
@@ -18,6 +19,7 @@ let searchTerm = '';
 let currentProduct = null;
 let adminTab = 'products';
 let adminEditing = null;
+let adminCategoryEditing = null;
 let roomPhotoUrl = null;
 let adminPhotoPreviewUrl = null;
 let arPendingReturn = false;
@@ -61,17 +63,10 @@ function displayProduct(item) {
 async function loadCatalog() {
   try {
     const data = await api('/api/catalog');
-    categories = [...new Set(data.categories.map(item => categoryName(item.name)))];
+    storefrontCategories = data.categories.filter(item => item.active !== false);
+    categories = [...new Set(storefrontCategories.map(item => categoryName(item.name)))];
     demoCatalog = data.demo === true;
     products = data.products.map(displayProduct);
-    document.querySelectorAll('.category-card[data-category]').forEach(card => {
-      const art = card.querySelector('.category-art');
-      if (!art) return;
-      const realProduct = products.find(item => !item.demo && item.category === categoryName(card.dataset.category) && item.imageUrl);
-      art.style.backgroundImage = realProduct ? `url(${JSON.stringify(realProduct.imageUrl)})` : 'none';
-      art.style.backgroundSize = 'cover';
-      art.style.backgroundPosition = 'center 55%';
-    });
     cart = Object.fromEntries(Object.entries(cart).filter(([id, qty]) => products.some(item => item.id === id) && Number.isSafeInteger(qty) && qty > 0));
     try { localStorage.setItem(STORAGE_CART, JSON.stringify(cart)); } catch { /* O carrinho continua disponível nesta sessão. */ }
     if (activeCategory !== 'Todos' && !categories.includes(activeCategory)) activeCategory = 'Todos';
@@ -82,9 +77,11 @@ async function loadCatalog() {
   } catch (error) {
     catalogError = true;
     categories = [];
+    storefrontCategories = [];
     products = [];
     console.error(error);
   }
+  renderCategoryCarousel();
   renderProducts();
   renderCart();
 }
@@ -99,6 +96,26 @@ function renderCategories() {
     const label = category === 'Velas artesanais aromáticas' ? 'Velas aromáticas' : category;
     return `<button data-category="${escapeHtml(category)}" class="${category === activeCategory ? 'active' : ''}" aria-pressed="${category === activeCategory}">${escapeHtml(label)}</button>`;
   }).join('');
+}
+function renderCategoryCarousel() {
+  $('#categoryCarousel').innerHTML = storefrontCategories.map((category, index) => {
+    const name = categoryName(category.name);
+    const cover = products.find(item => !item.demo && item.imageUrl && (item.categoryId && category.id ? item.categoryId === category.id : item.category === name));
+    return `<button type="button" data-category="${escapeHtml(name)}" class="category-card">${cover ? `<img class="category-art" src="${escapeHtml(cover.imageUrl)}" alt="" loading="lazy">` : '<span class="category-art" aria-hidden="true"></span>'}<span><small>${String(index + 1).padStart(2, '0')}${category.description ? ` / ${escapeHtml(category.description)}` : ''}</small><strong>${escapeHtml(name)}</strong><em>Descobrir <span aria-hidden="true">↗</span></em></span></button>`;
+  }).join('');
+  $('#categoryCarouselMessage').textContent = catalogError ? 'Não foi possível carregar as categorias. Recarregue a página para tentar novamente.' : storefrontCategories.length ? '' : 'Novas categorias em breve.';
+  updateCategoryCarousel();
+}
+function updateCategoryCarousel() {
+  const rail = $('#categoryCarousel');
+  const overflow = rail.scrollWidth > rail.clientWidth + 2;
+  $('#categoryCarouselControls').hidden = !overflow;
+  $('#categoryPrevious').disabled = !overflow || rail.scrollLeft <= 2;
+  $('#categoryNext').disabled = !overflow || rail.scrollLeft >= rail.scrollWidth - rail.clientWidth - 2;
+}
+function scrollCategoryCarousel(direction) {
+  const rail = $('#categoryCarousel');
+  rail.scrollBy({ left: direction * rail.clientWidth, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
 function filteredProducts() {
   const maxPrice = Number($('#maxPrice').value);
@@ -289,7 +306,8 @@ function renderAdmin() {
   if (adminTab === 'products') {
     host.innerHTML = `<button class="button button-terracotta admin-new" id="adminNew">+ Novo produto</button><div id="adminFormHost"></div><div>${adminProducts.map(item => `<div class="admin-row"><div><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.category)} · ${item.photoOnly ? 'Preço a definir' : currency(item.price)} · ${item.status === 'active' ? (item.photoOnly ? 'Foto publicada' : 'Publicado') : item.status === 'draft' ? 'Rascunho' : 'Arquivado'}</small></div><div><button data-admin-edit="${escapeHtml(item.id)}">Editar</button><button data-admin-delete="${escapeHtml(item.id)}">Excluir</button></div></div>`).join('') || '<p class="admin-empty">Nenhum produto cadastrado.</p>'}</div>`;
   } else if (adminTab === 'categories') {
-    host.innerHTML = `<form id="categoryForm" class="admin-form"><h3>Adicionar categoria</h3><div class="form-grid"><label>Nome<input name="name" required placeholder="Ex.: Mandalas"></label><label>Descrição<input name="description" placeholder="Opcional"></label></div><button class="button button-terracotta" type="submit">Adicionar</button></form><div>${adminCategories.map(item => `<div class="admin-row"><div><strong>${escapeHtml(item.name)}</strong><small>${item.active ? 'Visível' : 'Oculta'}</small></div><div><button data-category-edit="${escapeHtml(item.id)}">Editar</button><button data-category-delete="${escapeHtml(item.id)}">Excluir</button></div></div>`).join('') || '<p class="admin-empty">Nenhuma categoria cadastrada.</p>'}</div>`;
+    host.innerHTML = `<div id="categoryFormHost"></div><div>${adminCategories.map(item => `<div class="admin-row"><div><strong>${escapeHtml(item.name)}</strong><small>${item.active ? 'Visível' : 'Oculta'}${item.description ? ` · ${escapeHtml(item.description)}` : ''}</small></div><div><button data-category-edit="${escapeHtml(item.id)}">Editar</button><button data-category-delete="${escapeHtml(item.id)}">Excluir</button></div></div>`).join('') || '<p class="admin-empty">Nenhuma categoria cadastrada.</p>'}</div>`;
+    renderCategoryForm();
   } else {
     const statusLabels = { pending_payment: 'Aguardando pagamento', paid: 'Pago', preparing: 'Em preparação', shipped: 'Enviado', delivered: 'Entregue', cancelled: 'Cancelado', refunded: 'Reembolsado' };
     host.innerHTML = adminOrders.map(order => {
@@ -300,6 +318,12 @@ function renderAdmin() {
       return `<div class="admin-row order-row"><div><strong>Pedido ${escapeHtml(order.id.slice(0, 8))} · ${currency(Number(order.total_cents) / 100)}</strong><small>${escapeHtml(order.customer_name)} · ${escapeHtml(order.customer_email)} · ${escapeHtml(order.customer_phone || '')}</small><small>${items}</small><small>${escapeHtml(address.street || '')}, ${escapeHtml(address.number || '')} · ${escapeHtml(address.neighborhood || '')} · ${escapeHtml(address.city || '')}/${escapeHtml(address.state || '')} · CEP ${escapeHtml(address.zipCode || '')}</small><small>${statusLabels[order.status] || escapeHtml(order.status)} · pagamento ${escapeHtml(order.payment_status)} · ${new Date(order.created_at).toLocaleString('pt-BR')}</small></div>${editable ? `<button data-order-save="${escapeHtml(order.id)}" data-next-status="${nextStatus}">Marcar ${nextStatus === 'preparing' ? 'em preparação' : nextStatus === 'shipped' ? 'como enviado' : 'como entregue'}</button>` : ''}</div>`;
     }).join('') || '<p class="admin-empty">Ainda não há pedidos.</p>';
   }
+}
+function renderCategoryForm(id = null) {
+  const item = id ? adminCategories.find(category => category.id === id) : null;
+  if (id && !item) return;
+  adminCategoryEditing = item?.id || null;
+  $('#categoryFormHost').innerHTML = `<form id="categoryForm" class="admin-form"><h3>${item ? 'Editar categoria' : 'Adicionar categoria'}</h3><div class="form-grid"><label>Nome<input name="name" required maxlength="100" placeholder="Ex.: Mandalas" value="${escapeHtml(item?.name || '')}"></label><label>Texto acima do nome<input name="description" maxlength="500" placeholder="Ex.: Seu ritual" value="${escapeHtml(item?.description || '')}" aria-describedby="categoryDescriptionHelp"></label></div><p id="categoryDescriptionHelp" class="admin-price-help">Esse texto aparece no cartão da categoria. Deixe em branco se não quiser exibi-lo.</p><details class="category-options"><summary>Ordem e visibilidade</summary><div class="form-grid"><label>Ordem de exibição<input name="sortOrder" type="number" step="1" value="${item?.sortOrder ?? ''}" placeholder="No final da lista"></label><label>Visibilidade<select name="active"><option value="true" ${item?.active !== false ? 'selected' : ''}>Visível no site</option><option value="false" ${item?.active === false ? 'selected' : ''}>Oculta</option></select></label></div></details><button class="button button-terracotta" type="submit">${item ? 'Salvar alterações' : 'Adicionar categoria'}</button>${item ? '<button type="button" class="text-button" id="cancelCategoryForm">Cancelar</button>' : ''}</form>`;
 }
 function clearAdminPhotoPreview() { if (adminPhotoPreviewUrl) URL.revokeObjectURL(adminPhotoPreviewUrl); adminPhotoPreviewUrl = null; }
 function renderAdminForm(id = null) {
@@ -348,7 +372,7 @@ async function submitProduct(form) {
 }
 async function submitCategory(form) {
   const data = Object.fromEntries(new FormData(form).entries());
-  await mutate('/api/admin/categories', 'POST', { name: data.name, description: data.description });
+  await mutate('/api/admin/categories', adminCategoryEditing ? 'PATCH' : 'POST', { id: adminCategoryEditing, name: data.name, description: data.description, sortOrder: data.sortOrder === '' ? undefined : Number(data.sortOrder), active: data.active === 'true' });
   await refreshAdminAndCatalog();
 }
 
@@ -447,7 +471,8 @@ document.addEventListener('click', async event => {
     catch (error) { showInfo('Não foi possível atualizar o pedido', error.message); }
     return;
   }
-  if (target.dataset.categoryEdit) { const item = adminCategories.find(cat => cat.id === target.dataset.categoryEdit); const name = prompt('Nome da categoria:', item?.name)?.trim(); if (item && name) { try { await mutate('/api/admin/categories', 'PATCH', { ...item, name }); await refreshAdminAndCatalog(); } catch (error) { showInfo('Não foi possível editar', error.message); } } return; }
+  if (target.dataset.categoryEdit) { renderCategoryForm(target.dataset.categoryEdit); $('#categoryFormHost input[name="name"]').focus(); return; }
+  if (target.id === 'cancelCategoryForm') { renderCategoryForm(); return; }
   if (target.dataset.categoryDelete) { const item = adminCategories.find(cat => cat.id === target.dataset.categoryDelete); if (item && confirm(`Excluir a categoria ${item.name}?`)) { try { await mutate('/api/admin/categories', 'DELETE', { id: item.id }); activeCategory = 'Todos'; await refreshAdminAndCatalog(); } catch (error) { showInfo('Não foi possível excluir', error.message); } } return; }
   if (target.id === 'demoBackToCart') { closeDialogs(); openCart(); return; }
   if (target.id === 'finishDemoOrder') { cart = {}; saveCart(); closeDialogs(); showInfo('Teste concluído!', 'Você testou a escolha de produtos e a finalização do carrinho. Nenhum pedido foi enviado e nenhum pagamento foi cobrado. Continue explorando a loja.'); return; }
@@ -538,6 +563,10 @@ document.addEventListener('submit', async event => {
   if (event.target.id === 'productForm' || event.target.id === 'categoryForm') { event.preventDefault(); const form = event.target, button = form.querySelector('[type="submit"]'); button.disabled = true; try { if (form.id === 'productForm') await submitProduct(form); else await submitCategory(form); } catch (error) { showInfo('Não foi possível salvar', error.message); button.disabled = false; } }
 });
 document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); }));
+$('#categoryPrevious').addEventListener('click', () => scrollCategoryCarousel(-1));
+$('#categoryNext').addEventListener('click', () => scrollCategoryCarousel(1));
+$('#categoryCarousel').addEventListener('scroll', updateCategoryCarousel, { passive: true });
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(updateCategoryCarousel).observe($('#categoryCarousel'));
 $('#overlay').addEventListener('click', closeCart);
 $('#cartButton').addEventListener('click', event => { if (Date.now() < arReturnGuardUntil) { event.preventDefault(); return; } openCart(); });
 $('#searchTrigger').addEventListener('click', () => { openDialog('#searchDialog'); setTimeout(() => $('#searchInput').focus(), 30); });

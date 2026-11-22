@@ -17,9 +17,9 @@ export async function POST(request: Request) {
     const sql = database();
     const rows = await sql.query(
       `INSERT INTO categories (name, slug, description, sort_order, active)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+       VALUES ($1, $2, $3, COALESCE($4::integer, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM categories)), $5) RETURNING id`,
       [name, `${slug(name)}-${crypto.randomUUID().slice(0, 8)}`, value(body.description, 500),
-        Number.isInteger(body.sortOrder) ? body.sortOrder : 0, body.active !== false],
+        Number.isSafeInteger(body.sortOrder) ? body.sortOrder : null, body.active !== false],
     );
     return json({ id: rows[0].id }, 201);
   } catch (error) {
@@ -36,10 +36,10 @@ export async function PATCH(request: Request) {
     if (!validId(body.id) || !name) return json({ error: "Categoria inválida." }, 400);
     const sql = database();
     const rows = await sql.query(
-      `UPDATE categories SET name = $2, description = $3, sort_order = $4,
-       active = $5, updated_at = now() WHERE id = $1 RETURNING id`,
-      [body.id, name, value(body.description, 500),
-        Number.isInteger(body.sortOrder) ? body.sortOrder : 0, body.active !== false],
+      `UPDATE categories SET name = $2, description = COALESCE($3, description), sort_order = COALESCE($4::integer, sort_order),
+       active = COALESCE($5::boolean, active), updated_at = now() WHERE id = $1 RETURNING id`,
+      [body.id, name, typeof body.description === "string" ? value(body.description, 500) : null,
+        Number.isSafeInteger(body.sortOrder) ? body.sortOrder : null, typeof body.active === "boolean" ? body.active : null],
     );
     return rows.length ? json({ id: rows[0].id }) : json({ error: "Categoria não encontrada." }, 404);
   } catch (error) {
