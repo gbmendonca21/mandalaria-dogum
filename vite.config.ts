@@ -69,6 +69,15 @@ export default defineConfig(async ({ command }) => {
         inspectorPort: false,
         config: {
           ...localBindingConfig,
+          ...(command === "build"
+            ? {
+                workers_dev: true,
+                routes: [
+                  { pattern: "mandalariadogum.com.br", custom_domain: true },
+                  { pattern: "www.mandalariadogum.com.br", custom_domain: true },
+                ],
+              }
+            : {}),
           vars: {
             DEMO_CATALOG: process.env.DEMO_CATALOG ?? "false",
             NEON_AUTH_BASE_URL: process.env.NEON_AUTH_BASE_URL ?? "https://ep-shiny-waterfall-b7innoi8.neonauth.c-13.us-east-1.aws.neon.tech/mandalaria/auth",
